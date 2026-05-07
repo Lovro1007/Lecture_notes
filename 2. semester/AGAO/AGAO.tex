@@ -1,0 +1,39 @@
+\documentclass[12pt, a4paper]{article}
+
+\usepackage[en]{../../sty/FMF}
+
+\newcommand{\ff}{\mathbf{f}}
+\newcommand{\tff}{\Tilde{\mathbf{f}}}
+\newcommand{\ccc}{\mathbf{c}}
+\newcommand{\dd}{\mathbf{d}}
+
+
+\newcommand{\naslov}{Advanced Graph Algorithms and Optimization}
+
+\begin{document}
+
+\renewcommand{\headheight}{20pt}
+\maketitle
+\newpage
+\tableofcontents
+\newpage
+
+% SNOV
+% ------------
+\include{Sections/Introduction}
+\include{2. semester/AGAO/Sections/Course Introduction}
+\part*{Combinatorial Graph Algorithms} % No number
+\addcontentsline{toc}{part}{Combinatorial Graph Algorithms} % Add to TOC
+\markboth{Combinatorial Graph Algorithms}{} % Put it in the header
+\input{2. semester/AGAO/Sections/Combinatorial Graph Algorithms}
+
+\include{2. semester/AGAO/Sections/Classicalmaxflow2}
+\include{2. semester/AGAO/Sections/MAX Flow Expanders}
+\include{2. semester/AGAO/Sections/Separating hyperplanes, Lagrange kkt}
+
+% ------------
+
+\newpage
+\printindex
+
+\end{document}

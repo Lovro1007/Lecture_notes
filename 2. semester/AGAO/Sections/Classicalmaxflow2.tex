@@ -1,0 +1,151 @@
+\section{Classical Algorithms for Maximal Flow 2}
+We have the same setup as before, but we will approach it a bit differently.
+
+\subsection{Blocking Flows}
+
+Let $\ff$ be any feasible flow in $G$ and $G_f$ its residual graph. 
+
+We can partition all the vertices of $G_f$ by distance from $s$, so define the \textbf{level} of a vertex $v$ to be the length of the shortest path from $s$ to $v$. Denote that by $\ell (v)$ or $\ell_{G_f} (v)$, depending on the context. We observe that an edge can only bring you up one layer, but can drop you down multiple layers.
+
+Here we will try to focus on \textit{short} paths. 
+
+\begin{definicija}
+    We call an edge \emph{admissible} if it brings us up exactly one level (edge $(u,v)$, $\ell(u) + 1 = \ell(v)$.
+
+    We take all the admissible edges of $G_f$ and the graph induced by them is calleed the \emph{level graph} of $G_f$.
+
+    A \emph{blocking flow} in $G_f$ is a feasible flow $\Tilde{\ff}$ that uses only admissible edges while also saturating at least one edge along any $s-t$ path in the level graph of $G_f$.
+    
+\end{definicija}
+
+It is blcking because of the last condition. Basically it blocks every shortest path. Of course it might not be maximum flow in a graph.
+
+
+\subsection{Dinic's Algo}
+
+This will be the essence of Dinic's Algorithm for calculating max flow. We start with $\ff = 0$ and repeatedly add blocking flows until no more $s-t$ paths exist in $G_f$.
+
+Since it is a special case of Ford-Fulkerson we know that we have the same properties.
+
+\begin{lema}
+    Let $\ff$ be a feasible flow and $\Tilde{\ff}$ a blocking flow in $G_f$. If we define $\ff ' = \ff + \Tilde{\ff}$, then 
+    \begin{align*}
+        \ell_{G_{\ff'}}(t) \geq \ell_{G_\ff}(t) +1
+    \end{align*}
+\end{lema}
+
+\obvs
+
+From this we immediately get the following
+
+\begin{izrek}
+    Dinic's algo terminates in $O(n)$ iterations
+\end{izrek}
+
+\obvs
+
+For graphs with unit capacities we can actually get better bounds:
+
+\begin{izrek}
+    On unit capacity graphs, Dinic's algo terminates in
+    \begin{align*}
+        O ( \min (m^{1/2}, n^{2/3}))
+    \end{align*}
+\end{izrek}
+
+\begin{proof}
+    \begin{enumerate}
+        \item Suppose we run Dinic's algo for $k$ iteration. Now take $\Tilde{\ff}$ to be the optimal flow in $G_f$ (watch out, not in $G$) and since every path from $s$ to $t$ now takes at least $k$ edges and routes exactly $1$ unit of demand, we are using total edge capacity of 
+        atleast $k \cdot \text{val} (\Tilde{\ff})$. But since the total number of edges (with nonzero capacity) in $G_f$ is still the same as in $G$ 
+        the total capacity of $G_f$ is at most $m$, so 
+        $\textbf{val} (\tff) \leq \frac{m}{k}$
+
+        Recalling FF algorithms, this implies we wil terminate after atmost another $\frac m k$ iterations. Now we want to minimize $k + \frac m k$ and we see that this is optimized when $k = \sqrt{m}$ and we get $O(\sqrt{m})$ steps.
+
+        \item Again suppose we run it for $k$ iterations to get a flow $\ff$. Graph $G_f$ partitions the vertices into levels, so the sink must be at the level atleast $k$, so every layer from $1$ to $k$ has to be nonempty. And in $G_f$ we are only interested in the shortest paths to $t$, so we can forget about any vertices that are further away than $t$.
+
+        We see that we can't have more than $\frac k 2$ levels with size $|D_i| \geq \frac{2n}{k}$, as we have atmost $n-1$ elements in there, so there are more than $\frac k 2$ levels with $|D_i| < \frac{2n}{k}$, so there are atleast two consecutive levels with that and thus there are atmost $\frac{4n^2}{k^2}$ edges going there and from min cut we get that the remaining val is atmost that, so this also bounds the number of iterations left over.
+
+        So we need to do atmost $k + \frac{4n^2}{k^2}$ iterations, which is minimized at $k = 2n^{2/3}$ and the result is $O(n^{2/3}$.
+    \end{enumerate}
+    So we have two bounds and we can take the lower one.
+\end{proof}
+
+
+\subsection{How to find Blocking Flows}
+
+So we havent talkd about how to find Nemo yet.
+
+But we can do that using repeated DFS in the level graph.
+
+Though we need to have the level graph first, which we can achieve with BFS I guess and classify everything with that. And I believe that should take $O(m+n)$, which will be negligible at the end.
+
+Once we have this we just go deeper to try to hit $t$. If we arrive to the correct level without hitting $t$, then we switch to the new path and delete the first edge that we tried. Now the complexity of this should be $O(mn)$
+
+The algorithms is decomposed into two algorithms
+
+\begin{enumerate}
+    \item FINDBLOCKINGFLOW
+    \item DFS(u, H,t)
+\end{enumerate}
+
+
+
+\begin{lema}
+    For general graphs, FINDBLOCKINGFLOW returns a blocking flow in $O(mn)$ time. Hense Dinic's algo runs in $O(n^2m)$ time on general capacity graphs.
+\end{lema}
+
+\begin{proof}
+    Each useless edge will get added and deleted only once, so we get rid of them in $O(m)$ time, since there are at most that many useless edges.
+
+    Now we look at the useful ones. When we find a path, we will have at most $n-1$ edges, since that is the longest path, so that will be $O(n)$. You might think, that we need to be careful because we do things with the good edge even if we go to a useless one, but that is already taken care by the general $O(m)$ before. And we have at most $m$ different paths here, since every path saturates at least one edge. So we have $O(m+n) + O(m) + O(mn) = O(mn)$
+
+    And because the path can't be longer than $n$, we will repeat all the steps at most $n$ times with different level graphs, so that brings us to $O(n^2m)$
+
+    We note that the augmented paths can still interesect at some paths, but each will have atleast one saturated edge.
+\end{proof}
+
+\begin{lema}
+    For unit capacity graphs, FINDBLOCKINGFLOW returns a blocking flow in $O(m)$ time and Dinic Algo runs in $O(\min (m{3/2}, mn^{2/3})$ time.
+\end{lema}
+
+\begin{proof}
+    Here we know that if a path goes through an edge, no other path can go through it, so each edge will be traversed atmost once by DFS.
+\end{proof}
+
+There is a result on bipartite matching graphs where Dinic's algo runs in $O(|E| \sqrt{|V|})$, but we will not look at it.
+
+
+\subsection{Min Cut is a Linear Program}
+
+Remember the min cut as taking a subset $S$ of $V$ and its complement in $V$ and looking at edges starting from $S$ going to the complement. We want to find a set that minimizes the capacity of those edges.
+
+This should be equivalent to the following minimization program:
+
+\begin{equation}
+    \begin{aligned}
+    \min _{\mathbf{x}\in \R^V} &  \quad \sum_{e\in E} \ccc (e) \max(b_e ^\top \mathbf{x}, 0)\\
+    \text{with} & \quad  \mathbf{x}(s) = 0\\
+    & \quad \mathbf{x}(t) = 1 \\
+    & \quad 0 \leq \mathbf{x} \leq 1
+\end{aligned}
+\end{equation}
+
+Where $b_e^\top x = x(v) - x(u)$ for $e = (u,v)$
+
+This might not look like a proper linear program because of the $\max$ inside there, but it actually is if we introduce another variable $\mathbf{u} \in \R^E$
+
+\begin{equation}
+    \begin{aligned}
+    \min _{\mathbf{x}\in \R^V, \mathbf{u} in \R^E} &  \quad c^\top \mathbf{u}\\
+    \text{with} & \quad  \mathbf{x}(s) = 0\\
+    & \quad \mathbf{x}(t) = 1 \\
+    & \quad 0 \leq \mathbf{x} \leq 1\\
+    & \quad \mathbf{u} \geq 0\\
+    & \quad \mathbf{u} \geq \mathbf{B^\top x}
+\end{aligned}
+\end{equation}
+
+Somehow we should see that we don't neccesarily need to bound x between $0$ and $1$, but I don't really care rn.
+
+There is a proof of that in the script.

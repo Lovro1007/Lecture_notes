@@ -1,0 +1,29 @@
+\section{Separating Hyperplanes, Lagrange Multipliers, KKT conditions and Convex Duality}
+
+We first introduce separating hyperplanes and do some stuff we saw in functional analysis, that for two closed, convex, disjoint sets a separating hyperplane always exists.
+
+Then we introduce lagrange multipliers to convex optimization problem
+
+\begin{align*}
+    \min _y \mathcal{E}(y) \\
+    \textbf{with} \mathbf{Ay = b} \\
+    c(\mathbf{y}) \leq 0
+\end{align*}
+
+We introduce the \textit{Lagrangian}
+
+\begin{align*}
+    \mathbf{L(y,x,s) = \mathcal{E}(y) + x^\top (b-Ay) + s^\top c(y)}
+\end{align*}
+
+And we deal with the problem
+
+\begin{align*}
+    \max_{x,s, s\geq0} L(x,s)
+\end{align*}
+
+Where $L(x,s) = \min_y L(y,x,s)$.
+
+We show something called \textit{weak duality}, that is $L(y,x,s) \leq \mathcal{y}$ and that assuming some conditions (\textit{Slatner's condition}) the values of both the primal and dual are equal, so this is \textit{strong duality}.
+
+B

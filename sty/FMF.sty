@@ -1,0 +1,336 @@
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{FMF}[2020/10/05 FMF]
+
+\RequirePackage{geometry}
+ \geometry{
+ a4paper,
+	left=2.5cm,
+	right=2.5cm,
+	top=2.5cm,
+	bottom=2.5cm
+ }
+
+\newif\if@mylang\@mylangfalse
+\DeclareOption{en}{\@mylangtrue}
+\ProcessOptions\relax
+
+\if@mylang
+\RequirePackage[english]{babel}
+\else
+\RequirePackage[slovene]{babel}
+\fi
+
+\RequirePackage[utf8]{inputenc}
+\RequirePackage[T1]{fontenc}
+\RequirePackage{lmodern}
+
+\RequirePackage[upmendex]{indextools}
+
+\makeindex[program=upmendex, options=-s "../../sty/svn.ist"]
+
+\RequirePackage[nottoc]{tocbibind}
+\RequirePackage[backend=biber]{biblatex}
+\nocite{*}
+\RequirePackage{csquotes}
+\RequirePackage{url}
+\setcounter{biburllcpenalty}{7000}
+\setcounter{biburlucpenalty}{8000}
+
+\RequirePackage[shortlabels]{enumitem}
+\RequirePackage{amsmath}
+\RequirePackage{amsthm}
+\RequirePackage{mathrsfs}
+\RequirePackage{amssymb}
+\RequirePackage{mathtools}
+\RequirePackage{etoolbox}
+\RequirePackage{esvect}
+\RequirePackage{algpseudocode}
+\RequirePackage{algorithm}
+
+\RequirePackage[inline]{asymptote}
+
+\RequirePackage{pgf,tikz-cd,pgfplots}
+\usetikzlibrary{babel}
+\usetikzlibrary{arrows}
+\usetikzlibrary{calc}
+\tikzcdset{every label/.append style = {font = \small}}
+\pgfplotsset{compat=1.15}
+\newcommand{\tikzmark}[1]{\tikz[overlay,remember picture] \node (#1) {};}
+\newcommand{\DrawBox}[4][]{%
+    \tikz[overlay,remember picture]{%
+        \coordinate (TopLeft)     at ($(#2)+(-0.2em,0.9em)$);
+        \coordinate (BottomRight) at ($(#3)+(0.2em,-0.3em)$);
+        %
+        \path (TopLeft); \pgfgetlastxy{\XCoord}{\IgnoreCoord};
+        \path (BottomRight); \pgfgetlastxy{\IgnoreCoord}{\YCoord};
+        \coordinate (LabelPoint) at ($(\XCoord,\YCoord)!0.5!(BottomRight)$);
+        %
+        \draw [red,#1] (TopLeft) rectangle (BottomRight);
+        \node [below, #1, fill=none, fill opacity=1] at (LabelPoint) {#4};
+    }
+}
+
+\RequirePackage{float}
+\RequirePackage{graphicx}
+\RequirePackage{subcaption}
+\RequirePackage{wrapfig}
+\RequirePackage{multirow}
+\RequirePackage{array}
+\renewcommand{\arraystretch}{1.4}
+\setcounter{MaxMatrixCols}{20}
+\RequirePackage{diagbox}
+
+\RequirePackage{fancyhdr}
+\RequirePackage{footmisc}
+\RequirePackage{multicol}
+\RequirePackage{epigraph}
+    \pretocmd{\@epitext}{\em}{}{}
+    \apptocmd{\@epitext}{\em}{}{}
+    \setlength{\epigraphrule}{0pt}
+
+\RequirePackage{parskip}
+
+\RequirePackage[unicode]{hyperref}
+\hypersetup{
+    colorlinks,
+    linktoc=all,
+    linkcolor=blue,
+    citecolor=blue,
+    breaklinks=true,
+    urlcolor=blue
+}
+\RequirePackage{footnotebackref}
+
+\RequirePackage{tcolorbox}
+\newenvironment{okvir}
+{\vspace{0.2cm}
+\begin{tcolorbox}[colback=yellow!40!white,colframe=red!75!white,parbox=false]}
+{\end{tcolorbox}\vspace{0.2cm}}
+
+\let\P\relax
+
+\providecommand{\N}{\mathbb{N}}
+\providecommand{\Z}{\mathbb{Z}}
+\providecommand{\Q}{\mathbb{Q}}
+\providecommand{\R}{\mathbb{R}}
+\providecommand{\C}{\mathbb{C}}
+\providecommand{\F}{\mathbb{F}}
+\providecommand{\K}{\mathbb{K}}
+\providecommand{\HH}{\mathbb{H}}
+\providecommand{\P}{\mathbb{P}}
+
+
+\if@mylang
+\newenvironment{rešitev}{\begin{proof}[Solution]}{\end{proof}}
+\theoremstyle{definition}
+\newtheorem{izrek}{Theorem}[subsection]
+\newtheorem{lema}[izrek]{Lemma}%[section]
+\newtheorem*{lema*}{Lemma}%[section]
+\newtheorem{opomba}{Remark}[izrek]
+\newtheorem{posledica}[opomba]{Corollary}
+\newtheorem{trditev}[izrek]{Proposition}
+\newtheorem{definicija}[izrek]{Definition}%[section]
+\newtheorem{zgled}[opomba]{Example}
+\newtheorem{primer}[opomba]{Example}
+\newtheorem{openprob}{Open problem}[izrek]
+\newtheorem{naloga}[opomba]{Exercise}
+\else
+\newenvironment{rešitev}{\begin{proof}[Rešitev]}{\end{proof}}
+\theoremstyle{definition}
+\newtheorem{izrek}{Izrek}[subsection]
+\newtheorem{lema}[izrek]{Lema}%[section]
+\newtheorem*{lema*}{Lema}%[section]
+\newtheorem{opomba}{Opomba}[izrek]
+\newtheorem{posledica}[opomba]{Posledica}
+\newtheorem{trditev}[izrek]{Trditev}
+\newtheorem{definicija}[izrek]{Definicija}%[section]
+\newtheorem{zgled}[opomba]{Zgled}
+\newtheorem{primer}[opomba]{Primer}
+\newtheorem{openprob}{Odprt problem}[izrek]
+\fi
+
+\newcommand{\capt}{placeholder}
+
+\newenvironment{skica}[1]
+{
+\begin{figure}[!ht]
+\centering
+\renewcommand{\capt}{#1}
+}
+{%
+\caption{\capt}
+\end{figure}
+}
+
+\let\Re\relax
+\let\Im\relax
+\let\hom\relax
+\let\AE\relax
+
+\DeclareMathOperator{\Re}{Re}
+\DeclareMathOperator{\Im}{Im}
+\DeclareMathOperator{\id}{id}
+\DeclareMathOperator{\Sim}{Sim}
+\DeclareMathOperator{\Sym}{Sym}
+\DeclareMathOperator{\rang}{rang}
+\DeclareMathOperator{\rank}{rank}
+\DeclareMathOperator{\sgn}{sgn}
+\DeclareMathOperator{\im}{im}
+\DeclareMathOperator{\Lin}{Lin}
+\DeclareMathOperator{\Af}{Af}
+\DeclareMathOperator{\Hom}{Hom}
+\DeclareMathOperator{\End}{End}
+\DeclareMathOperator{\Aut}{Aut}
+\DeclareMathOperator{\Int}{Int}
+\DeclareMathOperator{\grad}{grad}
+\DeclareMathOperator{\Cl}{Cl}
+\DeclareMathOperator{\Fr}{Fr}
+\DeclareMathOperator{\GL}{GL}
+\DeclareMathOperator{\SO}{SO}
+\DeclareMathOperator{\Res}{Res}
+\DeclareMathOperator{\dv}{div}
+\DeclareMathOperator{\rot}{rot}
+\DeclareMathOperator{\ord}{ord}
+\DeclareMathOperator{\mult}{mult}
+\DeclareMathOperator{\AE}{AE}
+\DeclareMathOperator{\AR}{AR}
+\DeclareMathOperator{\Sing}{Sing}
+\DeclareMathOperator{\Flex}{Flex}
+\DeclareMathOperator{\Reg}{Reg}
+\DeclareMathOperator{\diam}{diam}
+\DeclareMathOperator{\supp}{supp}
+\DeclareMathOperator{\Tang}{T}
+\providecommand{\T}{\Tang\!}
+\DeclareMathOperator{\var}{var}
+\DeclareMathOperator{\cov}{cov}
+\DeclareMathOperator{\corr}{corr}
+\DeclareMathOperator{\Ar}{Ar}
+\DeclareMathOperator{\chr}{char}
+\DeclareMathOperator{\Gal}{Gal}
+\DeclareMathOperator{\Ob}{Ob}
+\DeclareMathOperator{\fl}{fl}
+\DeclareMathOperator{\tr}{tr}
+\DeclareMathOperator{\ext}{ext}
+\DeclareMathOperator{\co}{co}
+\DeclareMathOperator{\ann}{ann}
+\DeclareMathOperator{\rel}{rel}
+\DeclareMathOperator{\rad}{rad}
+\DeclareMathOperator{\lcm}{lcm}
+\DeclareMathOperator{\Br}{Br}
+\DeclareMathOperator{\coker}{coker}
+\DeclareMathOperator{\spn}{span}
+\DeclareMathOperator{\ind}{ind}
+\DeclareMathOperator{\Lat}{Lat}
+\DeclareMathOperator{\Tor}{Tor}
+\DeclareMathOperator{\Ext}{Ext}
+\DeclareMathOperator*{\colim}{colim}
+\DeclareMathOperator{\disc}{disc}
+\DeclareMathOperator{\adj}{adj}
+\DeclareMathOperator{\vol}{vol}
+\DeclareMathOperator{\Vect}{Vect}
+\DeclareMathOperator{\df}{def}
+\DeclareMathOperator{\Diff}{Diff}
+\DeclareMathOperator{\Pic}{Pic}
+\DeclareMathOperator{\ex}{ex}
+\DeclareMathOperator{\Spec}{Spec}
+
+\providecommand{\pot}{\mathcal{P}}
+\providecommand{\rel}[1]{\mathrel{#1}}
+\providecommand{\set}[1]{\left\{#1\right\}}
+\providecommand{\setb}[2]{\left\{#1~\middle\vert~#2\right\}}
+\providecommand{\abs}[1]{\left\lvert #1\right\rvert}
+\providecommand{\norm}[1]{\left\lVert #1\right\rVert}
+\providecommand{\floor}[1]{\left\lfloor #1\right\rfloor}
+\providecommand{\ceil}[1]{\left\lceil #1\right\rceil}
+\providecommand{\eval}[3]{\left. #1\right|_{#2}^{#3}}
+\providecommand{\skl}[1]{\left\langle #1\right\rangle}
+\providecommand{\lint}{\int\limits}
+\providecommand{\liint}{\iint\limits}
+\providecommand{\liiint}{\iiint\limits}
+\providecommand{\lidotsint}{\idotsint\limits}
+\providecommand{\olint}{\oint\limits}
+\providecommand{\bigsetminus}{\mathbin{\big\backslash}}
+\providecommand{\proj}[2]{#1\!\operatorname{P}^{#2}}
+\providecommand{\edn}{\triangleleft}
+\providecommand{\prt}[2]{\frac{\partial #1}{\partial #2}}
+\providecommand{\grpd}{\mathbin{\square}}
+\providecommand{\oline}{\overline}
+\providecommand{\uline}{\underline}
+\providecommand{\parc}[2]{\frac{\partial #1}{\partial #2}}
+\providecommand{\spr}{\overset{\circ}{\mathcal{B}}}
+\providecommand{\itr}[1]{\overset{\circ}{#1}}
+\providecommand{\br}[1]{\left(#1\right)}
+\providecommand{\cat}[1]{\uline{\mathcal{#1}}}
+\providecommand{\catt}[1]{\uline{\operatorname{#1}}}
+\providecommand{\rs}{\widehat{\C}}
+
+\RequirePackage{amsfonts}
+\DeclareMathAlphabet{\mathbbe}{U}{bbold}{m}{n}
+\DeclareFontFamily{U}{bbold}{}
+\DeclareFontShape{U}{bbold}{m}{n}
+ {  <-5.5> s*[1.1] bbold5
+    <5.5-6.5> s*[1.1] bbold6
+    <6.5-7.5> s*[1.1] bbold7
+    <7.5-8.5> s*[1.1] bbold8
+    <8.5-9.5> s*[1.1] bbold9
+    <9.5-11.5> s*[1.1] bbold10
+    <11.5-16> s*[1.1] bbold12
+    <16-> s*[1.1] bbold17
+ }{}
+\providecommand{\dsk}{\mathbbe{\Delta}}
+\providecommand{\dskx}{\mathbbe{\Delta}\!^*}
+
+\DeclareFontEncoding{FMS}{}{}
+\DeclareFontSubstitution{FMS}{futm}{m}{n}
+\DeclareFontEncoding{FMX}{}{}
+\DeclareFontSubstitution{FMX}{futm}{m}{n}
+\DeclareSymbolFont{fouriersymbols}{FMS}{futm}{m}{n}
+\DeclareSymbolFont{fourierlargesymbols}{FMX}{futm}{m}{n}
+\DeclareMathDelimiter{\VERT}{\mathord}{fouriersymbols}{152}{fourierlargesymbols}{147}
+\providecommand{\morm}[1]{\left\VERT #1 \right\VERT}
+
+\providecommand{\titleR}{\texorpdfstring{$\R$}{R}}
+\providecommand{\titleRn}[1]{\texorpdfstring{$\R^{#1}$}{R\^{}#1}}
+
+\providecommand{\kvoc}[2]{
+\mathchoice
+{% \displaystyle
+\left.\text{\raise0.4ex\hbox{$\textstyle#1$}}\middle/\text{\lower0.4ex\hbox{$\textstyle#2$}}\right.%
+}
+{% \textstyle
+\left.\text{\raise0.25ex\hbox{$#1$}}\middle/\text{\lower0.25ex\hbox{$#2$}}\right.
+}
+{% \scriptstyle
+\left.\text{\raise0.15ex\hbox{$#1$}}\middle/\text{\lower0.15ex\hbox{$#2$}}\right.
+}
+{% \scriptscriptstyle
+\left.#1\middle/#2\right.
+}
+}
+
+\newcommand*\dashline{\mathbin{\rotatebox[origin=c]{90}{$\dabar@\dabar@\dabar@$}}}
+\RequirePackage{arydshln}
+
+\newcommand{\obvs}{\begin{proof}The proof is obvious and need not be mentioned. \end{proof}}
+
+\newcommand{\avtor}{Lovro Drofenik}
+\newcommand{\avtorzmailom}{Lovro Drofenik (\href{mailto:lovrodro@gmail.com}{lovrodro@gmail.com})}
+
+\title{\naslov}
+\author{\avtorzmailom}
+\date{\today}
+
+\pagestyle{fancy}
+\fancyhf{}
+\renewcommand{\headrulewidth}{0.4pt}
+\lhead{\nouppercase\leftmark}
+\rhead{\avtor}
+\cfoot{\thepage}
+
+\RequirePackage[useregional]{datetime2}
+\newcommand{\datum}[1]{\pagebreak[2]\leavevmode\marginpar{\rotatebox{-90}{\hspace{-0.5\baselineskip}\color{gray}{\DTMdate{#1}}}}\nopagebreak\vspace{-\baselineskip-\parskip}}
+\renewcommand{\sectionmark}[1]{\markboth{#1}{}}
+
+\setcounter{tocdepth}{2}
+
+%\overfullrule=5pt
