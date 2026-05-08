@@ -1,10 +1,11 @@
-# Predavanja FMF
+# Predavanja ETH
 
 ## O repozitoriju
 
-V repozitoriju so zbrani zapiski s predavanj nekaterih predmetov iz časa mojega študija na Fakulteti za matematiko in fiziko Univerze v Ljubljani.
-Nastajali so med predavanji, zato je možno, da vsebujejo kako napako. Popravki so vedno dobrodošli.
+Nekateri zapiski predavanj na ETH, mogoče so slabi, mogoče so dobri, mogoče se jih ne bom več dotaknil...
 
+
+Preostali 
 ---
 
 ## Navodila za sestavljanje pdf datotek
@@ -35,8 +36,5 @@ tem upoštevajte naslednji format:
 	"Priporočil bi vam, da vam internet ne pade."
 	- prof. dr. Miran Černe, 7. 12. 2020
 
----
 
-## Povezave
 
-[Discord](https://discord.gg/BJcTTAVFWv)
