@@ -20,9 +20,16 @@
 \RequirePackage[slovene]{babel}
 \fi
 
-\RequirePackage[utf8]{inputenc}
-\RequirePackage[T1]{fontenc}
-\RequirePackage{lmodern}
+\RequirePackage{iftex}
+
+\ifPDFTeX
+  \RequirePackage[utf8]{inputenc}
+  \RequirePackage[T1]{fontenc}
+  \RequirePackage{lmodern}
+\else
+  \RequirePackage{fontspec}
+  \setmainfont{Latin Modern Roman}
+\fi
 
 \RequirePackage[upmendex]{indextools}
 

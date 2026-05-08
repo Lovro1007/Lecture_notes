@@ -1,6 +1,6 @@
 % !TEX root = ../AGAO.tex
 
-section{Separating Hyperplanes, Lagrange Multipliers, KKT conditions and Convex Duality}
+\section{Separating Hyperplanes, Lagrange Multipliers, KKT conditions and Convex Duality}
 
 We first introduce separating hyperplanes and do some stuff we saw in functional analysis, that for two closed, convex, disjoint sets a separating hyperplane always exists.
 
@@ -26,6 +26,27 @@ And we deal with the problem
 
 Where $L(x,s) = \min_y L(y,x,s)$.
 
-We show something called \textit{weak duality}, that is $L(y,x,s) \leq \mathcal{y}$ and that assuming some conditions (\textit{Slatner's condition}) the values of both the primal and dual are equal, so this is \textit{strong duality}.
+We show something called \textit{weak duality}, that is $L(y,x,s) \leq \mathcal{E} (y)$ and that assuming some conditions (\textit{Slatner's condition}) the values of both the primal and dual are equal, so this is \textit{strong duality}.
 
-B
+\subsection{Sparating Hyperplane Theorem}
+
+Let $A, B \subset \R ^n$ be two convex and discjoint sets $(A \cap B = \emptyset)$. We can show that there always exists a hyperplane separating those two sets, so that $A$ is on one side of the hyperplane and $B$ is on the other.
+
+\begin{definicija}
+    A \textit{hyperplane} in $\R^n$ is a set of the form $\{ x \in \R ^n, x \cdot \nu = \mu \}$ for some $\nu \in \R^n, \nu \neq 0$ and $\mu \in \R$. We say that $H$ has a normal $\nu$ and threshold $\mu$.
+\end{definicija}
+
+Hyperplane divides $\R^n$ into two halfspaces.
+
+\begin{definicija}
+    We say a hyperplane $H (\nu, \mu)$ \textit{separates two sets} $A, B$ $\iff$
+    \begin{align*}
+        \forall a \in A, a \cdot \nu \leq \mu \\
+        \forall b \in B, b \cdot \nu \geq \mu
+    \end{align*}
+
+    If we have strict inequalities it st strictly separates.
+\end{definicija}
+
+
+
