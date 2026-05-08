@@ -1,0 +1,39 @@
+# LaTeX build files
+*.aux
+*.bbl
+*.bcf
+*.blg
+*.fdb_latexmk
+*.fls
+*.idx
+*.ilg
+*.ind
+*.lof
+*.log
+*.lot
+*.out
+*.run.xml
+*.synctex.gz
+*.toc
+*.xdv
+
+# Build folders
+build/
+_output/
+*.synctex(busy)
+
+# Temporary editor files
+*.bak
+*.tmp
+*~
+.DS_Store
+Thumbs.db
+
+# VS Code local workspace settings, optional
+.vscode/settings.json
+
+# Keep PDFs? Choose one policy:
+# If you want PDFs in GitHub, comment this out.
+# If you only want source files in GitHub, keep it.
+#*.pdf
+#``
