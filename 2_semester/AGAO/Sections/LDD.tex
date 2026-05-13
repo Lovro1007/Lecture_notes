@@ -1,0 +1,204 @@
+\section{Low diameter decomposition (LDD)}
+
+In the first half, we will look at undirected graphs, and in the second half, we will look at directed ones.
+
+The idea is to take a graph and partition the vertices into clusters such that the clusters have a low diameter. We usually also want to ensure that there are not too many edges crossing between the clusters, which we will formally define below.
+
+\begin{definicija}
+    Given an undirected graph $G = (V, E, w)$ with $w \in \mathbb{R}_{\geq 0}^E$, we say a partition $X_1, \ldots, X_k$ of $V$, along with the set of crossing edges $E_{del} = \{(u,v) \in E \mid u \in X_i, v \in X_j, j \neq i\}$, forms a $(D, \alpha)$ \textit{LDD} if:
+    \begin{enumerate}
+        \item The maximum distance between any two vertices within the same cluster is $\leq \alpha D$. Here, distance refers to the weighted shortest path, and we require the path to lie entirely within the cluster.
+        \item For every edge $e \in E$, the probability that it is cut and placed in $E_{del}$ is bounded by $\mathbb{P}[e \in E_{del}] \leq \frac{w(e)}{D}$.
+    \end{enumerate}
+\end{definicija}
+
+We are working mostly in a probabilistic sense here.
+
+\begin{primer}
+    There exists a $(D,1)$ LDD on an unweighted path.
+\end{primer}
+\begin{proof}
+    Pick a random residue $r$ uniformly modulo $D$, and cut the edges at distances $r, r+D, r+2D, \ldots$ along the path. Each edge is cut with probability exactly $1/D$, and every resulting cluster (segment of the path) has length at most $D$.
+\end{proof}
+
+We will need the exponential distribution, so let's define it here:
+
+\begin{definicija}
+    We denote by $\text{ExpDist}(D)$ a function that samples from the exponential distribution with parameter $\lambda = 1/D$. We sample from the cumulative distribution function (CDF):
+    \begin{align*}
+        F(x,D) = 1 - e^{-x/D}, \quad x \geq 0
+    \end{align*}
+\end{definicija}
+
+Here, the parameter $D$ represents the mean, which might be defined slightly differently (e.g., as the rate $\lambda$) in standard probability courses, but the math behaves the same.
+
+We have the useful property $F(4D \ln n, D) = 1 - e^{-4 \ln n} = 1 - 1/n^4$. 
+We also heavily rely on the memoryless property: $\mathbb{P}[X > x+s \mid X > s] = \mathbb{P}[X > x]$.
+
+\begin{izrek}
+    We can compute a $(D, 8 \ln n)$ LDD in $O(m \log n)$ time, succeeding with probability at least $1 - 1/n^3$.
+
+    \begin{algorithm}
+    \caption{ComputeLDD($G, D$)}\label{alg:computeLDD}
+    \begin{algorithmic}
+    \State Start with an empty set of clusters $\mathcal{X} = \emptyset$
+    \State $V_{rem} = V$
+    \While{$V_{rem} \neq \emptyset$}
+        \State Pick an arbitrary vertex $v \in V_{rem}$
+        \State Sample a radius $R \sim \text{ExpDist}(D)$
+        \State Grow a ball $X = B_{G[V_{rem}]}(v, R)$ in the remaining graph
+        \State Add $X$ to $\mathcal{X}$
+        \State Remove $X$ from $V_{rem}$ ($V_{rem} = V_{rem} \setminus X$)
+    \EndWhile
+    \State \Return $\mathcal{X}$
+    \end{algorithmic}
+    \end{algorithm}
+\end{izrek}
+
+As the algorithm outlines, we start with an arbitrary vertex $v$ and pick a radius $R$ from the exponential distribution with parameter $D$. We form a cluster by taking the ball of this radius around $v$. Then, we remove this cluster from the graph and continue with another arbitrary remaining vertex.
+
+\begin{lema}
+    The returned clustering guarantees that for every cluster $X \in \mathcal{X}$:
+    \begin{align}
+        \text{dist}_{G[X]}(u,v) \leq 8D \ln n
+    \end{align}
+    with probability at least $1 - 1/n^3$.
+\end{lema}
+\begin{proof}
+    We sample at most $n$ radii. Each sampled radius $R$ is $\leq 4D \ln n$ with probability $1 - 1/n^4$. By taking the union bound across all vertices, all sampled radii are bounded by $4D \ln n$ simultaneously with probability at least $1 - 1/n^3$. When we multiply this by two (because the maximum distance between two vertices in a ball is twice the radius from the center), we get $8D \ln n$, which is exactly what we need.
+\end{proof}
+
+Now we need to verify that each edge gets cut with the correct probability.
+
+\begin{lema}
+    For every edge $e \in E$:
+    \begin{align*}
+        \mathbb{P}[e \in E_{del}] \leq \frac{w(e)}{D}
+    \end{align*}
+\end{lema}
+\begin{proof}
+    Consider an edge $e = (u,v)$. We look at the first time one of its endpoints is absorbed into a cluster's ball. Let $c$ be the center of that ball. Without loss of generality, assume $d(c, u) \leq d(c, v)$. By the triangle inequality, $d(c, v) \leq d(c, u) + w(e)$.
+    
+    The edge $e$ is cut if and only if the sampled radius $R$ falls strictly between the distances to the two endpoints. Let $a = d(c, u)$. Given that the ball reaches at least $u$ (i.e., $R > a$), we use the memoryless property to bound the probability that $R$ stops before reaching $v$:
+    \begin{align*}
+        \mathbb{P}[e \in E_{del}] &\leq \mathbb{P}[R < a + w(e) \mid R > a] \\
+        &= \mathbb{P}[R < w(e)] \\
+        &= 1 - e^{-w(e)/D} \leq \frac{w(e)}{D}
+    \end{align*}
+\end{proof}
+
+The runtime is dominated by computing the shortest path balls. Using Dijkstra's algorithm, the total time to grow the balls across all iterations is $O(m \log n)$, which is nearly linear.
+
+
+\subsection{LDDs for Directed Graphs}
+
+In directed graphs the situation becomes more subtle: distances are no longer symmetric, and the triangle inequality does not always help in the same way. We therefore adjust both the definition and the algorithm.
+
+\begin{definicija}
+    Given a directed graph $G = (V, E, w)$ with $w \in \mathbb{R}_{\geq 0}^E$, a partition $X_1, \ldots, X_k$ of $V$, together with a set of deleted edges $E_{del} \subseteq E$, forms a $(D, \alpha)$ \textit{LDD} if:
+    \begin{enumerate}
+        \item For every $i \in \{1,\dots,k\}$ and any two vertices $u,v \in X_i$, we have $\mathbf{dist}_G(u,v) \leq \alpha D$. Here the distance is measured in the whole original graph $G$, not only inside the cluster. (In directed graphs, a path that stays inside a cluster may not exist even though the vertices are close in $G$; measuring distance globally is the right choice for many applications.)
+        \item For every edge $e \in E$, the probability that it is deleted satisfies $\mathbb{P}[e \in E_{del}] = O\left(\frac{w(e) \log n}{D}\right)$.
+        \item The graph obtained by contracting each cluster into a super‑vertex and removing all edges in $E_{del}$ is a directed acyclic graph (DAG). In particular, we do not delete all inter‑cluster edges; we only delete enough edges to break all directed cycles among the clusters.
+    \end{enumerate}
+\end{definicija}
+
+To get some intuition, consider a directed unweighted cycle. If $D$ is larger than the cycle length, we can put the whole cycle into one cluster. If $D$ is smaller, the best we can do is to put each vertex into its own cluster, and delete a single edge to make the contracted graph acyclic. This is exactly what we need.
+
+\subsubsection{Why the naive undirected algorithm fails}
+In the undirected case we simply carved balls of radius $R\sim \text{Exp}(D)$ around arbitrary vertices, and each ball immediately became a cluster. The diameter bound followed from the fact that any two points in a ball of radius $R$ are at most $2R$ apart. In a directed graph, an out‑ball (or in‑ball) does not guarantee short directed paths between arbitrary vertices inside it: two points in the same out‑ball may need a path that first goes forward and then backward, which may not exist within the ball. Therefore we cannot simply keep the ball as a cluster. Instead, we must break it further until we reach pieces that are either singletons or satisfy a stronger condition that yields short paths between all pairs.
+
+\subsubsection{The key combinatorial idea}
+The algorithm works recursively. At each step we look for a vertex whose out‑ball or in‑ball up to a horizon of $4D\ln n$ is ``light'', i.e., contains at most half of the remaining vertices. Carving a ball around it reduces the size of the remaining graph by a constant factor. We then recurse on the induced subgraph of that ball. The recursion stops when the current graph contains no light vertex; at that moment, every remaining vertex has both its forward and backward balls large, and we can prove that any two vertices in this remaining set are at distance $\le 8D\ln n$ via an intersection argument. The recursion depth is $O(\log n)$, which allows us to control the total probability of an edge being deleted.
+
+\subsubsection{The algorithm}
+
+\begin{algorithm}
+\caption{ComputeDirectedLDD($G, D$)}\label{alg:computeDirLDD}
+\begin{algorithmic}
+\State Initialize $\mathcal{X} = \emptyset$, $E_{del} = \emptyset$.
+\While{there exists a vertex $r \in V \setminus \bigcup \mathcal{X}$ with
+       $|B^{out}_G(r, 4D\ln n)| \le \frac12 |V|$ or
+       $|B^{in}_G(r, 4D\ln n)| \le \frac12 |V|$}
+    \State Sample $\tilde{D} \sim \text{ExpDist}(D)$.
+    \State Let $\# \in \{\mathrm{out}, \mathrm{in}\}$ be the direction that minimises $|B^{\#}_G(r, 4D\ln n)|$.
+    \State $X \gets B^{\#}_{G[V\setminus \bigcup \mathcal{X}]}(r, \tilde{D})$ \hfill // ball in the remaining graph
+    \State Add all $\#$-edges crossing between $X$ and the rest of $G[V\setminus \bigcup \mathcal{X}]$ to $E_{del}$.
+    \State $(\mathcal{X}', E_{del}') \gets \text{ComputeDirectedLDD}(G[X], D)$ \hfill // recurse on the ball
+    \State $\mathcal{X} \gets \mathcal{X} \cup \mathcal{X}'$
+    \State $E_{del} \gets E_{del} \cup E_{del}'$
+\EndWhile
+\State Add the remaining vertices $V \setminus \bigcup \mathcal{X}$ as a single new cluster to $\mathcal{X}$.
+\State \Return $(\mathcal{X}, E_{del})$
+\end{algorithmic}
+\end{algorithm}
+
+\textbf{Explanation of the steps.}
+\begin{itemize}
+    \item The algorithm maintains a set of clusters $\mathcal{X}$ (initially empty) and a set of deleted edges $E_{del}$. At each iteration we look at the vertices that have not yet been assigned to any cluster.
+    \item The condition of the while‑loop checks whether there exists a vertex $r$ whose out‑ball up to the horizon $R_{\max} = 4D\ln n$ has size at most $|V|/2$, or whose in‑ball has size at most $|V|/2$. Such a vertex is called \textit{out‑light} or \textit{in‑light}, respectively. 
+    \item If a light vertex exists, we pick the direction for which the ball up to $R_{\max}$ is smaller (ties broken arbitrarily), sample a random radius $\tilde D$ from the exponential distribution with mean $D$, and take the ball of radius $\tilde D$ around $r$ in the chosen direction within the \emph{remaining} graph. This ball is denoted $X$.
+    \item To later enforce the DAG property, we permanently delete all edges that leave $X$ (if we carved an out‑ball) or all edges that enter $X$ (if we carved an in‑ball). Notice that we delete only the edges crossing in one direction, not both.
+    \item \textbf{Crucially, $X$ itself is not kept as a cluster.} Instead, we call the whole algorithm recursively on the induced subgraph $G[X]$. The recursion will further partition $X$ into smaller clusters that satisfy the diameter bound inside $G[X]$. The clusters returned by the recursion ($\mathcal{X}'$) are inserted into the global partition $\mathcal{X}$, and the edges deleted inside the recursion are added to $E_{del}$.
+    \item When no light vertex remains (i.e., every vertex has both its out‑ball and its in‑ball of radius $4D\ln n$ containing more than half the current graph), the while‑loop finishes. At this point we take all remaining unassigned vertices as one final cluster and add it to $\mathcal{X}$.
+\end{itemize}
+
+\subsubsection{Why the recursion terminates (with high probability)}
+
+We must argue that each recursive call shrinks the number of vertices by a constant factor, so the depth is $O(\log n)$.
+
+\begin{itemize}
+    \item By definition, the chosen vertex $r$ is light: in the selected direction $\#$, the ball of radius $R_{\max} = 4D\ln n$ has size at most $\frac12 |V_{\text{current}}|$.
+    \item The sampled radius $\tilde D$ is at most $4D\ln n$ with probability $1 - e^{-4\ln n} = 1 - n^{-4}$. Conditioning on this event, the actual ball $X$ is a subset of the ball of radius $R_{\max}$ and therefore $|X| \le \frac12 |V_{\text{current}}|$.
+    \item Thus, with probability $1 - n^{-4}$, each recursive call operates on a graph of at most half the previous size. A union bound over the at most $n$ calls shows that with probability $\ge 1 - n^{-3}$, every recursive step indeed reduces the size by a factor at least $2$.
+    \item Consequently, after at most $\log_2 n$ levels of recursion we reach a graph where either it consists of a single vertex (trivially non‑light) or it is larger but contains no light vertex. In either case the recursion stops.
+\end{itemize}
+
+Hence, with high probability, the algorithm never recurses deeper than $O(\log n)$ and terminates correctly.
+
+\subsubsection{Analysis of the three properties}
+
+We now prove that the returned partition and deleted edge set satisfy the definition of a $(D, 8\ln n)$ LDD with probability at least $1 - n^{-3}$.
+
+\paragraph{1. Bounded diameter.}
+We claim that for every cluster $Y \in \mathcal{X}$ and any two vertices $u,v \in Y$, we have $\mathbf{dist}_G(u,v) \le 8D\ln n$, with probability $\ge 1 - n^{-3}$.
+
+\begin{proof}
+    The proof is by induction on the number of vertices of the graph.
+    
+    \textbf{Base case.} Consider the final cluster that is created when the while‑loop ends. At that moment, the remaining graph $H$ (the induced subgraph on the vertices not yet assigned) contains no light vertex. Thus for every $r \in V(H)$, we have $|B^{out}_H(r, 4D\ln n)| > \frac12 |V(H)|$ and $|B^{in}_H(r, 4D\ln n)| > \frac12 |V(H)|$. Take any two vertices $u,v \in V(H)$. Since both $|B^{out}_H(u, 4D\ln n)|$ and $|B^{in}_H(v, 4D\ln n)|$ are larger than half the vertices, they must intersect. Let $w$ be a vertex in the intersection. By definition, there is a directed path from $u$ to $w$ of length $\le 4D\ln n$ inside $H$ (hence inside $G$), and a directed path from $w$ to $v$ of length $\le 4D\ln n$ inside $H$. Concatenating them yields a directed path from $u$ to $v$ in $G$ of length at most $8D\ln n$. Thus the final cluster satisfies the diameter bound.
+    
+    \textbf{Inductive step.} Assume the theorem holds for all directed graphs with fewer than $n$ vertices. In the algorithm, after carving a ball $X$ of size $\le n/2$ (with high probability), we call $\text{ComputeDirectedLDD}(G[X], D)$. By the induction hypothesis, every cluster returned by this recursive call has diameter $\le 8D\ln n$ when distances are measured inside $G[X]$. Since $G[X]$ is an induced subgraph of $G$, any path that lies entirely in $G[X]$ is also a path in $G$. Hence these clusters also satisfy the diameter bound in the original graph $G$.
+    
+    The union bound over the at most $n$ recursive calls ensures the high probability. Thus every cluster produced by the algorithm obeys the diameter bound.
+\end{proof}
+
+\paragraph{2. Edge deletion probability.}
+For every edge $e = (u,v) \in E$, we need $\mathbb{P}[e \in E_{del}] = O\!\left(\frac{w(e) \log n}{D}\right)$.
+
+\begin{proof}[Proof sketch]
+    Consider the sequence of recursive levels. An edge can be considered for deletion only when one of its endpoints is first included in a carved ball at some recursion level. Inside that level, the ball center $r$, the direction $\#$, and the random radius $\tilde D$ are chosen. The edge $e$ is deleted exactly when the sampled radius $\tilde D$ separates $u$ from $v$. More precisely, if the ball is an out‑ball, $e$ is cut iff $r$ reaches $u$ but not $v$; if it is an in‑ball, $e$ is cut iff $r$ reaches $v$ but not $u$. In either case, using the memoryless property of the exponential distribution, the probability that the radius stops between the two distances (thereby cutting the edge) is at most $1 - e^{-w(e)/D} \le \frac{w(e)}{D}$.
+    
+    The crucial observation is that each vertex can participate in at most $O(\log n)$ such ball‑growing events before it is completely isolated. This is because every time a light vertex is chosen, the current graph shrinks by a factor at least $2$ with high probability. Hence the edge $e$ is ``at risk'' at most $O(\log n)$ times. Summing the per‑event probability over all occasions where $e$ could be cut gives the claimed bound $O\!\left(\frac{w(e) \log n}{D}\right)$.
+    
+    A rigorous analysis uses a union bound over the recursion levels and the fact that the edge can be endangered only as long as both its endpoints remain in the current remaining graph, which lasts at most $O(\log n)$ steps.
+\end{proof}
+
+\paragraph{3. DAG property.}
+The contracted graph $G / \mathcal{X}$ with all edges from $E_{del}$ removed is acyclic.
+
+\begin{proof}
+    We show by induction on the number of vertices that, at every stage, there is no directed cycle in the original graph that visits more than one cluster after deleting $E_{del}$.
+    
+    \textbf{Base case.} $|V| \le 1$: vacuously true.
+    
+    \textbf{Inductive step.} Suppose the claim holds for all smaller graphs. In the current step, we pick a direction $\#$, carve a ball $X$, and delete all $\#$-edges between $X$ and the rest $V \setminus X$.
+    \begin{itemize}
+        \item If we carved an out‑ball, we deleted all edges leaving $X$. Any directed cycle that involves both $X$ and later clusters would need to enter $X$ via some edge $(y, x)$ with $y \in V \setminus X$, $x \in X$, and then leave $X$ via some edge $(x', y')$ with $x' \in X$, $y' \in V \setminus X$. But the latter edge is missing because all outgoing edges from $X$ were deleted. Hence no such cycle can exist.
+        \item If we carved an in‑ball, we deleted all edges entering $X$. By the symmetric argument, no cycle can involve both $X$ and later clusters.
+    \end{itemize}
+    The recursive call on $G[X]$, by the induction hypothesis, creates no cycles inside $X$ that cross multiple subclusters. Moreover, the edges between $X$ and the rest have been dealt with. Therefore, overall, no directed cycle remains that traverses more than one cluster. Contracting the clusters then yields a DAG.
+\end{proof}
+
+\subsubsection{Efficient implementation (sketch)}
+We can do the implementation in a more efficient way, it is in the official lecture notes.

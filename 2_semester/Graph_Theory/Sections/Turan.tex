@@ -1,0 +1,113 @@
+\section{Turan's theorem}
+
+Motivation: Given fixed number of vertices, how many edges do we need to guarantee that we have a triangle?
+
+Full  bipartite graphs work and they are the best. This is a theorem by Mantel.
+
+And this got upgraded by Turan by looking at graphs that don't have a clique of size $r+1$. You can take $r$ partite graph. This gives us approximately $\binom{n}{2} - r \cdot \binom{n/r}{2}$ edges.
+
+Or equivalently $\binom{r}{2} (n/r)^2$. This can be written in the following theorem
+
+\begin{izrek}[Turan]
+    Any $K_{n+1}$ free graph on $n$ vertices has at most 
+    \begin{align}
+        \binom{r}{2} (n/r)^2 = (1-1/r) n^2/2
+    \end{align}
+    edges.
+\end{izrek}
+
+\begin{proof}
+    We try to symmetrize it. We induct on $r$. We actually start with $r = 1$ an this is an empty graph, since this is the largest graph without an edge.
+
+    Now suppose for $r-1$ and any $n$ we have the largest $K_r$ free graph to have at most $(1-1/r) \frac{n^2}2$ edges and that the unique maximizer is the $r-1$ partite graph.
+
+    Now let $G$ be an $n-$vertex $K_{r+1}$ free graph. Pick the vertex $v$ with the largest degree.
+
+    Let $V_1$ be the set of all the vertices not connected to $v$, namely $v\in V_1$. Because $G$ is $K_{r+1}$ free, then $N(v)$ is $K_r$ free.
+
+    Now we will take $V_1$ and delete all the internal edges and add all the missing external edges and we want to prove that we don't decrease the number of edges in total.
+
+    In $N_v$ wasn't the optimal graph then put inside the optimal $K_r$ free graph on the same number of vertices (here we don't lose the total number of edges).
+
+    Since $v_1$ had the most neighbors we deleted at most $\deg v \cdot (n-\deg v-1)$ edges, but added back exactly $\deg v \cdot (n-\deg v -1)$ edges, since we first deleted every edge from guys in  $V_1$ and every vertex had at most $\deg v$ edges. And then we added an edge to every vertex in $N(v)$ and there are exactly $\deg v$ of them. So this graph turns out to be $r$-partite.
+
+    Now we know that the optimal will be $r$ partite and we can optimise to see that the most edges are when we put them approximately evenly split.
+
+    About the uniqueness we see that if $V_1$ would have some edges in the beginning then we strictly increase, so we know the unique maximals are the $r-$ partite graphs.
+\end{proof}
+
+\begin{proof}[Proof 2]
+    We take graph $G$ and $K_{r+1}$ free. We assign weights to every vertex, so we have $x_1, \ldots, x_n$ and suppose $\sum x_i = 1$.
+
+    Take the following function
+
+    \begin{align}
+        f_G (X) = \sum _{i \sim j} x_i x_j
+    \end{align}
+
+    and we want to maximize it. We see that taking $x_i = \frac 1 n$ we get $\frac{e(G)}{n^2}$ and if we prove $f_G \leq \frac{r-1}{2r}$ we are done.
+
+    We see that if $i$ and $j$ are not connected, then we have a linear function in $x_i, x_j$ and we can see that it will be maximized in (at least) one of $(x_i+x_j, 0)$ or $(0, x_i + x_j)$. So we can set one of them to be zero and the function not decreasing. So we can do that until we end up with atmost $r$ positive values. And from here we see that we can set all of them to be $1/r$ and get at most $\binom{r}{2}/r^2 = \frac{r-1}{2r}$ which is exactly what we wanted. Actually we need to show that we cant get more but this works by some inequalities, probably cauchy schwarz.
+\end{proof}
+
+\begin{proof}[Proof 3]
+    We can also have a probabilistic proof and we will be working on the complement graph. So the complement graph will not have an independent set of size $r+1$. Now we want to find the minimum number of edges we can have, which will also be the minimum total sum of degrees.
+
+    Consider a random permutation of the vertices of the graph. We pick each vertex that is not connected to any of the previous vertices in the graph. Now that means that vertex with degree $d$ will be picked with probability $1/(d+1)$ (look at $v$ with the neighbourhood and see that we can cycle) and the expected number of vertices picked is thus 
+    \begin{align*}
+        \sum_i \frac{1}{d_i +1}
+    \end{align*}
+    So thus there exists an independent set of that size. But we see that the minimum will be obtained if all $d_i$ will be the same (we look at $1/n + 1/m \geq 2/(m+n)$. So we can continue this actually for all the vertices so we have an independent set of size atleast $n^2/(2e(G)+n)\leq r$ an from that we get
+
+    \begin{align}
+        \frac{n^2}{r} \leq n + 2e(G) \\
+        e(G) \leq \frac{n^2}{2r} - \frac{n}{2}
+    \end{align}
+
+    And after observing that the edges of the complement and the original graph sum to $\binom n 2$ we are done.
+\end{proof}
+
+\begin{primer}
+    We have $a_1, \ldots a_n$ unit vectors in $\R^d$. What is the maximum number of pairs with $|a_i + a_j|< 1$.
+
+\end{primer}
+
+We form a graph and connect if the length of the sum is at most one. We want to prove that this graph is triangle free. 
+
+Suppose not, then we have $$3>(a_i + a_j)^2 + (a_j + a_k)^2 + (a_k + a_i)^2 = 3 + (a_i + a_j + a_k)^2 $$
+which is a contradiction.
+
+And now we get the result from Turan, which is also possible to achieve with just putting a lot of $\pm 1$.
+
+\begin{definicija}
+    We define $ex(n, H)$ (the extremal number) to be the maximal number of edges in a $n$ vertex graph that does not contain a copy of $H$.
+
+    And we define the density 
+    $$\pi (H) = \lim _{n \to \infty} \frac{ex(n, H)}{\binom{n}{2}}$$
+\end{definicija}
+
+It turns out that the limit always exists because this is actually decreasing (not strictly).
+
+We can always lower bound this with the chromatic number because if we have $\chi (H) = r+1$ then we can take $r$ partite graph and we are done, so
+
+\begin{align*}
+    (1-\frac 1r)\frac{n^2}{2} \leq \ex(n,H)
+\end{align*}
+
+But there is a theorem of $Erdos-Stone$ that says that
+
+\begin{align}
+     (1-\frac 1r)\frac{n^2}{2}(1+\varepsilon) \geq \ex(n,H)
+\end{align}
+
+where $\varepsilon \to 0$ as $n \to \infty$.
+
+So we have the theorem that holds for $r\geq2$. For bipartite graphs we have a problem on the left.
+
+\begin{align}
+    \pi(H) = 1 - \frac{1}{\chi(H) -1}
+\end{align}
+
+\begin{primer}
+    What is the maximal number of edges we can have without $C_4$.
+\end{primer}

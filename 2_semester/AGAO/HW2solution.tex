@@ -1,251 +1,469 @@
-\documentclass[11pt, a4paper]{article}
-
+\documentclass[a4paper,11pt]{article}
 \usepackage[utf8]{inputenc}
-\usepackage{amsmath, amssymb, amsthm}
-\usepackage{geometry}
-\geometry{margin=1in}
-\usepackage{algorithm}
-\usepackage{algpseudocode}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{enumitem}
 \usepackage{hyperref}
 
-% --- Custom Environments and Commands ---
-\newtheorem{theorem}{Theorem}
-\newtheorem{definition}{Definition}
+% Page layout
+\usepackage[margin=1in]{geometry}
 
-\newcommand{\solution}{
-    \vspace{0.5cm}
-    \noindent\makebox[\linewidth]{\rule{\textwidth}{0.4pt}}
-    \textbf{Solution:} \\
-    % --- WRITE YOUR SOLUTION HERE ---
-    \vspace{3cm} % You can remove this vspace when you write your actual solution
-}
+% Math notation
+%\newcommand{\pmb}[1]{\boldsymbol{#1}}
+\newcommand{\coloneqq}{\mathrel{\mathop:}=}
+\DeclareMathOperator{\opt}{opt}
+\DeclareMathOperator{\congestion}{cong}
+\DeclareMathOperator{\polylog}{polylog}
+\DeclareMathOperator{\MaxFlow}{MaxFlow}
+\DeclareMathOperator{\degG}{deg}
+\DeclareMathOperator{\vol}{vol}
+\DeclareMathOperator{\evol}{endvol}
 
-\title{
-    \textbf{Advanced Graph Algorithms and Optimization} \\
-    \large Spring 2026 \\
-    \large Graded Homework 2
-}
+\newcommand{\R}{\mathbb{R}}
+
+\renewcommand{\deg}{\degG} % simple degree operator
+
+% Solution environment
+\newenvironment{solution}
+  {\begin{proof}[Solution]}
+  {\end{proof}}
+% For algorithms
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+
+\title{Graded Homework 2}
 \author{Lovro Drofenik}
-\date{Due: Tuesday, May 19, 2026}
 
 \begin{document}
-
 \maketitle
+
+\noindent\textbf{Graded Homework 2}
+
+Disclaimer: Due to my interpretation of the prohibition of generative AI to be based only on solving the Homework I have used Deepseek to parse the PDF to latex code. The full prompt and the answer is available on \url{https://chat.deepseek.com/share/8mfyvzpu1ge6w77er5}.
 
 \section*{Problem 1: Tree-Flow Sparsifier (30 Points)}
 
 In this exercise, we introduce tree-flow sparsifiers, extremely powerful objects that are crucial for many modern fast approximation algorithms for graph problems. On the way, we learn about a stronger notion of expander decomposition.
 
-Throughout this exercise, for two subsets $A, B \subset V$, we denote by $E(A,B)$ the set of edges with one endpoint in $A$ and one endpoint in $B$. We call a set $\mathcal{X}$ of pairwise disjoint subsets of $V$ a partition of $V$ if $\cup_{X\in\mathcal{X}}X=V$. Given a partition $\mathcal{X}$, we denote by $G/\mathcal{X}$ a new graph where we contract every cluster $X\in\mathcal{X}$ into a single super-vertex. That is, for every $x\in V(G/\mathcal{X})$ there exists a unique $X\in\mathcal{X}$ with which it is identified, and the number of multi-edges between two vertices $x_{1},x_{2}\in V(G/\mathcal{X})$ is exactly given by $|E_{G}(X_{1},X_{2})|$, where $X_{1}, X_{2}\in\mathcal{X}$ are the corresponding clusters. Note that $G/\mathcal{X}$ does not contain any self-loops.
+Throughout this exercise, for two subsets \(A,B\subseteq V\), we denote by \(E(A,B)\) the set of edges with one endpoint in \(A\) and one endpoint in \(B\). We call a set \(\mathcal{X}\) of pairwise disjoint subsets of \(V\) a \emph{partition} of \(V\) if \(\cup_{X\in \mathcal{X}}X = V\). Given a partition \(\mathcal{X}\), we denote by \(G / \mathcal{X}\) a new graph where we contract every cluster \(X\in \mathcal{X}\) into a single super-vertex. That is, for every \(x\in V(G / \mathcal{X})\) there exists a unique \(X\in \mathcal{X}\) with which it is identified, and the number of multi-edges between two vertices \(x_1,x_2\in V(G / \mathcal{X})\) is exactly given by \(|E_G(X_1,X_2)|\), where \(X_1,X_2\in \mathcal{X}\) are the corresponding clusters. Note that \(G / \mathcal{X}\) does not contain any self-loops.
 
-We say that $f(n)\in O(g(n)\operatorname{polylog} n)$ if there exists a constant $L>0$ such that $f(n)\in O(g(n)\log^{L}n)$. We assume throughout that the graph $G$ of interest is connected, and we will generally allow all our graphs to be multigraphs and contain self-loops. By $\deg_{G}(v)$ we denote the degree of $v$ in $G$, where importantly we also count self-loops and multi-edges. We also remind the reader of multicommodity flows, as already discussed in Graded Homework 1.
+We say that \(f(n)\in O(g(n)\polylog n)\) if there exists a constant \(L > 0\) such that \(f(n)\in O(g(n)\log^L n)\). We assume throughout that the graph \(G\) of interest is connected, and we will generally allow all our graphs to be multigraphs and contain self-loops. By \(\deg_{G}(v)\) we denote the degree of \(v\) in \(G\), where importantly we also count self-loops and multi-edges.
 
-\begin{definition}
-    Let $G=(V,E,u)$ be a (multi-)graph with capacities $u$. Given a set of demands $d_{u,v}\ge0$ for every pair of vertices $u, v\in V$, we say that a collection of flows $f=\{f_{u,v}\}_{u,v\in V\times V}$ routes the demands $\{d_{u,v}\}$ with congestion $\beta$ if
-    \begin{enumerate}
-        \item For every $u, v$, $f_{u,v}$ is a $u-v$ flow that routes demand $d_{u,v}$, and
-        \item For every edge $e\in E$, we have that
-        \[ \operatorname{cong}_{f}(e) := \sum_{(u,v)\in V\times V}\frac{|f_{u,v}(e)|}{u(e)} \le \beta. \]
-    \end{enumerate}
-\end{definition}
+We also remind the reader of multicommodity flows, as already discussed in Graded Homework 1.
 
-We will denote by $\operatorname{opt}_{G}(\{d_{u,v}\})$ the minimum congestion any multicommodity flow routing a specific set of demands $\{d_{u,v}\}$ incurs. We will later make use of the following theorem:
+\textbf{Definition 1.} Let \(G = (V, E, u)\) be a (multi-)graph with capacities \(u\). Given a set of demands \(d_{u,v}\geq 0\) for every pair of vertices \(u,v\in V\), we say that a collection of flows \(\pmb{f} = \{f_{u,v}\}_{u,v\in V\times V}\) \emph{routes the demands \(\{d_{u,v}\}\) with congestion \(\beta\)} if
+\begin{enumerate}[label=(\arabic*)]
+    \item For every \(u,v\), \(f_{u,v}\) is a \(u\)-\(v\) flow that routes demand \(d_{u,v}\), and
+    \item For every edge \(e\in E\), we have that
+    \[
+        \congestion_{\pmb{f}}(e)\coloneqq \sum_{(u,v)\in V\times V}\frac{|f_{u,v}(e)|}{u(e)}\leq \beta .
+    \]
+\end{enumerate}
 
-\begin{theorem}
-    Let $G=(V,E)$ be a multi-graph with possibly self-loops. Let $G$ be a $\phi$-expander, and let $\{d_{u,v}\}$ be a set of demands. Suppose that for every vertex $v\in V$, we have that $\sum_{u\in V}d_{u,v}\le \deg_{G}(v)$ and $\sum_{u\in V}d_{v,u}\le \deg_{G}(v)$. Then $\operatorname{opt}_{G}(\{d_{u,v}\})=O(\phi^{-1}\log|V|)$, i.e., there exists a multicommodity flow $f$ that routes the demands with congestion $O(\phi^{-1}\log|V|)$.
-\end{theorem}
+We will denote by \(\opt_G(\{d_{u,v}\})\) the minimum congestion any multicommodity flow routing a specific set of demands \(\{d_{u,v}\}\) incurs.
 
-\textbf{Boundary-Linked Expander Decompositions:} One way to think about an expander decomposition $\mathcal{X}$ of a graph $G$ is that it constitutes a good clustering of the graph: the clusters $G[X]$ (where $X\in\mathcal{X}$) are well-connected internally, and, on the other hand, the number of edges crossing between the clusters is only a $q\phi \ll 1$ fraction of the total number of edges, where $q \ll \phi^{-1}$ is the quality of the decomposition. Notice that this definition in general does not aim to control the connectivity of boundary-vertices; that is, it does not aim to control the existence of vertices $v\in X\in\mathcal{X}$ with $\frac{|E(\{v\},V\setminus X)|}{\deg_{G[X]}(v)}$ large. This contradicts an intuitive understanding of a good clustering, as it implies that $v$ may be much better connected to the outside of the cluster than to the inside.
+We will later make use of the following theorem:
 
-To resolve this issue, we introduce a stronger notion of expander decomposition. Denote by $G[X]^{\alpha}$ the graph $G[X]$ where, additionally, for every vertex $v\in X,$ we add an additional $\alpha|E(\{v\}, V\setminus X)|$ self-loops to $v$ in $G[X]$.
+\textbf{Theorem 2.} Let \(G = (V,E)\) be a multi-graph with possibly self-loops. Let \(G\) be a \(\phi\) expander, and let \(\{d_{u,v}\}\) be a set of demands. Suppose that for every vertex \(v\in V\), we have that \(\sum_{u\in V}d_{u,v}\leq \deg_G(v)\) and \(\sum_{u\in V}d_{v,u}\leq \deg_G(v)\). Then \(\opt_G(\{d_{u,v}\}) = O(\phi^{-1}\log |V|)\), i.e., there exists a multicommodity flow \(\pmb{f}\) that routes the demands with congestion \(O(\phi^{-1}\log |V|)\).
 
-\begin{definition}[Boundary-Linked Expander Decomposition]
-    Let $\phi, \alpha, q>0.$ We say that a partition $\mathcal{X}$ of the vertex set $V$ is a $(\phi, \alpha)$-Boundary-Linked Expander Decomposition of quality $q$ if
-    \begin{enumerate}
-        \item for every $X\in\mathcal{X}$, the induced graph $G[X]^{\lceil\alpha/\phi\rceil}$ is a $\phi$-expander, and
-        \item the number of edges not in any $G[X]$ is at most $q\phi m$.
-    \end{enumerate}
-\end{definition}
+\subsection*{Boundary-Linked Expander Decompositions}
+One way to think about an expander decomposition \(\mathcal{X}\) of a graph \(G\) is that it constitutes a good clustering of the graph: the clusters \(G[X]\) (where \(X\in \mathcal{X}\)) are well-connected internally, and, on the other hand, the number of edges crossing between the clusters is only a \(q\phi \ll 1\) fraction of the total number of edges, where \(q \ll \phi^{-1}\) is the quality of the decomposition.
 
-\subsection*{(Multi-Commodity Flows) (1 point)}
-Let $\mathcal{X}$ be a $(\phi,\alpha)$ Boundary-Linked Expander Decomposition. Fix a cluster $X\in\mathcal{X}$ and let $d_{u,v}$ be a set of demands on $X$ such that for every $v\in X$, $\sum_{u\in X}(d_{v,u}+d_{u,v})\le \deg_{G}(v)$. Prove that there exists a multi-commodity flow $f$ on $G[X]$ that routes the demands with congestion $O(\log n\phi^{-1})$.
+Notice that this definition in general does not aim to control the connectivity of boundary-vertices; that is, it does not aim to control the existence of vertices \(v\in X\in \mathcal{X}\) with \(\frac{|E(\{v\},V\setminus X)|}{\deg_{G[X]}(v)}\) large. This contradicts an intuitive understanding of a good clustering, as it implies that \(v\) may be much better connected to the outside of the cluster than to the inside.
 
-\solution
+To resolve this issue, we introduce a stronger notion of expander decomposition. Denote by \(G[X]^{\alpha}\) the graph \(G[X]\) where, additionally, for every vertex \(v\in X\), we add an additional \(\alpha |E(\{v\},V\setminus X)|\) self-loops to \(v\) in \(G[X]\).
+
+\textbf{Definition 3 (Boundary-Linked Expander Decomposition).} Let \(\phi,\alpha,q > 0\). We say that a partition \(\mathcal{X}\) of the vertex set \(V\) is a \((\phi,\alpha)\)-Boundary-Linked Expander Decomposition of quality \(q\) if
+\begin{enumerate}[label=(\arabic*)]
+    \item for every \(X\in \mathcal{X}\), the induced graph \(G[X]^{\lceil \alpha/\phi \rceil}\) is a \(\phi\)-expander, and
+    \item the number of edges not in any \(G[X]\) is at most \(q\phi m\).
+\end{enumerate}
+
+\subsection*{Part \(\aleph\) (Multi-Commodity Flows) (1 point)}
+Let \(\mathcal{X}\) be a \((\phi,1)\) Boundary-Linked Expander Decomposition. Fix a cluster \(X\in \mathcal{X}\), and let \(d_{u,v}\) be a set of demands on \(X\) such that for every \(v\in X\), \(\sum_{u\in X}(d_{v,u} + d_{u,v})\leq \deg_G(v)\). Prove that there exists a multi-commodity flow \(\pmb{f}\) on \(G[X]\) that routes the demands with congestion \(O(\log n \phi^{-1})\).
+
+
+
+\begin{solution}
+
+We first switch from $G[X]$ to $G[X]^{\lceil 1/\phi \rceil}$.
+We see that in $G[X]^{\lceil 1/\phi \rceil}$ the degrees of vertices are atleast as big as in $G$, because if we don't lose any edges on the vertex then we keep the same degree, otherwise we actually add to the degree by adding self loops as each self loop is counted twice to the degree and each outgoing edge was counted only once. And we always add atleast one edge since $\lceil 1/\phi \rceil\geq 1$ (in fact here we could use any $\alpha$).
+
+Thus we can invoke Theorem 2, since we have an even stronger inequality \(\sum_{u\in X}(d_{v,u} + d_{u,v})\leq \deg_G(v)\) whuch implies both inequalities needed for the theorem. From the theorem we get a flow in $G[X]^{\lceil 1/\phi \rceil}$ but we know that if a flow goes through a self-loop then we can just skip the self-loop completely and we can thus find the same flow just in $G[X]$ with the correct congestion.
+\end{solution}
+
+
+
 
 \subsection*{Part A (Existence \& Construction) (10 points)}
-Assume oracle access to the following routine $\textsc{CertifyOrCut}(G, \phi)$ that, given a multigraph $G$, either:
-\begin{itemize}
-    \item certifies that $G$ is a $\phi$-expander,
-    \item or, returns a set $S$ with $\phi(S)=O(\phi \operatorname{polylog} m)$.
-\end{itemize}
-Show how to use this routine to obtain a routine $\textsc{ExpanderDecomp}(G, \phi)$ that returns a $(\phi,\alpha)$ Boundary-Linked Expander Decomposition with $\alpha=\Omega(1/\operatorname{polylog} m)$ and quality $q=O(\operatorname{polylog} m)$ using at most $O(n)$ calls to the oracle. (Hint: The routine \textsc{CertifyOrCut} also works for multigraphs.)
+Assume oracle access to the following routine \(\texttt{CERTIFYORCUT}(G,\phi)\) that, given a multigraph \(G\), either certifies that \(G\) is a \(\phi\)-expander, or returns a set \(S\) with \(\phi(S) = O(\phi \polylog m)\).
 
-\solution
+Show how to use this routine to obtain a routine \(\texttt{EXPANDERDECOMP}(G,\phi)\) that returns a \((\phi,\alpha)\) Boundary-Linked Expander Decomposition with \(\alpha = \Omega(1 / \polylog m)\) and quality \(q = O(\polylog m)\) using at most \(O(n)\) calls to the oracle.
+
+\textit{Hint:} The routine \(\texttt{CERTIFYORCUT}\) also works for multigraphs.
+
+
+
+
+
+\begin{solution}
+
+We will do the following: Apply \texttt{CERTIFYORCUT} on the original graph. If it is an expander, we are done. Otherwise, we split the graph into $2$ sets and augment them with self-loops. We see that any expander in the augmented graph must also be an expander in the original graph. This is because if we split the expander in any way, we are cutting exactly the same edges as in the original graph, but in the augmented graph the volumes are larger since we added self-loops. (Note that the other direction does not hold, but we are not interested in it anyway).
+
+We also see that every call to the oracle will either terminate (certify a set) or it will separate some vertices from the others (a cut). We can visualize the oracle calls as a binary tree where each cut call adds a split (an internal node) and the bottom nodes are the certify calls (the leaves). Since we are always splitting non-empty sets of vertices, there can be atmost $n$ leaves. A binary tree with at most $n$ leaves has atmost $n-1$ internal nodes. Thus, we make atmost $O(n)$ cut calls and $O(n)$ certify calls to the oracle, yielding atmost $O(n)$ total calls.
+
+Now we bound the number of cut edges. In each cut, we remove at most $\vol(S) \cdot O(\phi \polylog m)$ edges, since $\phi(S) \leq O(\phi \polylog m)$ and WLOG $S$ has the smaller volume.
+
+Let $q'$ be our target quality bound such that we remove a total of exactly $t = m \phi q'$ edges. Let $\evol(S)$ be the sum of the degrees of vertices in set $S$ in the final augmented graph at the end of the expander decomposition. We can see that at any point, $\vol(S) \leq \evol(S)$. For every edge we remove, we add at most $2\lceil \alpha/\phi \rceil$ self-loops total. So at the end, the total final volume $\evol(G)$ is at most $2m + 4\lceil \alpha/\phi \rceil t \leq 2m + 4(\alpha/\phi + 1)t$.
+
+At each cut step, we remove at most $\evol(S) \cdot O(\phi \polylog m)$ edges. If an edge was counted in $\evol(S)$, it means the end volume of the next cut-set the edge can be in decreased by at least half. Therefore, each edge in the final volume is counted at most $O(\log m)$ times across all cuts. This means the total number of removed edges $t$ is bounded by $\evol(G) \cdot O(\log m) \cdot O(\phi \polylog m)$.
+
+Substituting $t = m \phi q'$ and grouping the logarithms into a single $O(\polylog m)$ term, we get:
+
+\begin{align*}
+    m \phi q' &\leq \left( 4 \left(\frac{\alpha}{\phi} + 1 \right)m \phi q' + 2m \right) \phi \cdot O(\polylog m) \\
+    q' &\leq \left( 4q'( \alpha +\phi ) + 2 \right) \cdot O(\polylog m) \\
+    q' \left( 1 - 4\alpha \cdot O(\polylog m) -4\phi \cdot O(\polylog m) \right) &\leq O(\polylog m) 
+\end{align*}
+
+To satisfy this inequality, assume $\phi$ is sufficiently small $\phi \leq 1/(4C \cdot \polylog m)$ where $C \polylog m$ is the correct highest constant for $O(\polylog m)$(If $\phi \geq 1/(4C \cdot \polylog m)$ then $m \leq m \phi \cdot O(\polylog m)$ and even if we cut all the edges we see we bound $q'$ by polylog). 
+
+We can then explicitly choose $\alpha = \Omega(1 / \polylog m)$ so that the term including $\alpha$ becomes less than $1/2$. The entire coefficient in the parenthesis on the left-hand side then resolves to a positive constant, proving that $q' \leq O(\polylog m)$, which we wanted to prove.
+
+\end{solution}
+
+
+
+
+
 
 \subsection*{Part B (The Expander Hierarchy) (4 points)}
-Given two partitions $\mathcal{X}_{1}, \mathcal{X}_{2}$, we say that $\mathcal{X}_{2}$ is a coarsening of $\mathcal{X}_{1}$ if for every $X_{1}\in\mathcal{X}_{1}$, there exists $X_{2}\in\mathcal{X}_{2}$ with $X_{1}\subseteq X_{2}$. We denote by $\mathcal{X}_{2}/\mathcal{X}_{1}$ the set $\mathcal{X}_{2}$, but where we contract every cluster of $\mathcal{X}_{1}$ into a single vertex. We will say that $\mathcal{X}_{2}$ is an expander decomposition of $G/\mathcal{X}_{1}$ if $\mathcal{X}_{2}/\mathcal{X}_{1}$ is an expander decomposition of $G/\mathcal{X}_{1}.$
+Given two partitions \(\mathcal{X}_1, \mathcal{X}_2\), we say that \(\mathcal{X}_2\) is a \emph{coarsening} of \(\mathcal{X}_1\) if for every \(X_1 \in \mathcal{X}_1\), there exists \(X_2 \in \mathcal{X}_2\) with \(X_1 \subseteq X_2\). We denote by \(\mathcal{X}_2 / \mathcal{X}_1\) the set \(\mathcal{X}_2\), but where we contract every cluster of \(\mathcal{X}_1\) into a single vertex. We will say that \(\mathcal{X}_2\) is an expander decomposition of \(G / \mathcal{X}_1\) if \(\mathcal{X}_2 / \mathcal{X}_1\) is an expander decomposition of \(G / \mathcal{X}_1\).
 
-\begin{definition}[Expander Hierarchy]
-    Given an undirected, uncapacitated graph $G$, we say partitions $\mathcal{X}_{0},\mathcal{X}_{1},\mathcal{X}_{2},\dots,\mathcal{X}_{k}$ for some $k=O(\log m)$ form a $(\phi, \alpha)$-expander hierarchy if for each $i=1,\dots,k,$ (1) $\mathcal{X}_{i}$ is a $(\phi,\alpha)$-Boundary-Linked expander decomposition of $G/\mathcal{X}_{i-1}$ and (2) for $i<k, \mathcal{X}_{i+1}$ is a coarsening of $\mathcal{X}_{i}$. Additionally, we require that $\mathcal{X}_{0}=\{\{v\}:v\in V\}$ and that $\mathcal{X}_{k}=\{V\}$.
-\end{definition}
+\textbf{Definition 4 (Expander Hierarchy).} Given an undirected, uncapacitated graph \(G\), we say partitions \(\mathcal{X}_0, \mathcal{X}_1, \mathcal{X}_2, \ldots , \mathcal{X}_k\) for some \(k = O(\log m)\) form a \((\phi, \alpha)\)-expander hierarchy if for each \(i = 1, \ldots , k\), (1) \(\mathcal{X}_i\) is a \((\phi, \alpha)\)-Boundary-Linked expander decomposition of \(G / \mathcal{X}_{i-1}\), and (2) for \(i < k\), \(\mathcal{X}_{i+1}\) is a coarsening of \(\mathcal{X}_i\). Additionally, we require that \(\mathcal{X}_0 = \{\{v\} : v \in V\}\) and that \(\mathcal{X}_k = \{V\}\).
 
-\begin{algorithm}[H]
-\caption{Expander Hierarchy}\label{alg:hierarchy}
+\begin{algorithm}[ht]
+\caption{Expander Hierarchy}
+\label{alg:hierarchy}
 \begin{algorithmic}[1]
-\State \textbf{Input:} Multigraph $G=(V,E)$.
-\State \textbf{Output:} Expander Hierarchy of $G$
-\State $i \gets 0$
-\State $\mathcal{X}_{0} \gets \{\{v\}:v\in V\}$
-\State $G_{0} \gets G$
+\State $i \gets 0$;
+\State $\mathcal{X}_0 \gets \{\{v\} : v \in V\}$;
+\State $G_0 \gets G$;
 \While{true}
-    \State $i \gets i+1$
-    \State $\mathcal{X}_{i} \gets \textsc{ExpanderDecomp}(G_{i-1}, \phi)$ \Comment{Routine from Part A}
-    \State $G_{i} \gets G_{i-1}/\mathcal{X}_{i}$
-    \If{$G_{i}$ consists of a single vertex}
-        \State \textbf{break}
+    \State $i \gets i + 1$;
+    \State $\mathcal{X}_i \gets \text{EXPANDERDECOMP}(G_{i-1}, \phi)$; \Comment{EXPANDERDECOMP is the routine from Part A.}
+    \State $G_i \gets G_{i-1} / \mathcal{X}_i$;
+    \If{$G_i$ consists of a single vertex}
+        \State \textbf{break};
     \EndIf
 \EndWhile
-\State \textbf{return} $\mathcal{X}_{0},\mathcal{X}_{1},\dots,\mathcal{X}_{i}; G_{0},G_{1},\dots,G_{i}$
+\State \Return $\mathcal{X}_0, \mathcal{X}_1, \ldots , \mathcal{X}_i$, $G_0, G_1, \ldots , G_i$; 
 \end{algorithmic}
 \end{algorithm}
+\footnote{We are of course abusing notation, since inside the algorithm \(\mathcal{X}_i\) is a set of subsets of vertices of \(G_{i-1}\). However, we can identify vertices of \(G_{i-1}\) with sets of vertices of \(G\), so we can trivially map \(\mathcal{X}_i\) to sets of subsets of \(V\).}
+In the next part, we will show how to construct a tree \(T\) from such a hierarchy that has the remarkable property of crudely approximating every multicommodity flow in \(G\). For now, your task in this exercise is to analyze Algorithm~1.
 
-\textbf{1.} Show that for $\phi\in e^{-\Theta(\log^{1/2}m)}$ small enough, the algorithm terminates after $k=O(\log^{1/2}m)$ iterations.
+\begin{enumerate}[label=(\arabic*)]
+    \item Show that for \(\phi \in e^{-\Theta(\log^{1/2} m)}\) small enough, the algorithm terminates after \(k = O(\log^{1/2} m)\) iterations.
+    \item Argue why the output is a correct \((\phi, \alpha)\) expander hierarchy with \(\alpha = \Omega(1 / \polylog m)\).
+\end{enumerate}
 
-\solution
+\begin{solution}
+We can see that the edges in the next level of hierarchy are a subset of the deleted edges in the previous hierarchy, so by part $A$ we know that if we have $m$ edges in the original graph, then in the $\mathcal{X}_1$ we obtain exactly the expander decomposition from before and when we contract $\mathcal{X}_1$ we are left only with the edges going between expanders, which are bounded by $m \phi \cdot O(\polylog m)$.
 
-\textbf{2.} Argue why the output is a correct $(\phi, \alpha)$ expander hierarchy with $\alpha=\Omega(1/\operatorname{polylog} m).$
+After we continue these steps we get that the number of edges in graph $G_i$ is bounded above by $m \phi^i \cdot O(\polylog m)^i$. So now if we take $\phi = \exp (-c \sqrt{\log m})$ for some constant $c$ we can calculate that the number of edges after $\sqrt{\log m}$ steps is bounded by
 
-\solution
+\begin{align*}
+    m \cdot m^{-c} \cdot O(\polylog m) ^{\sqrt{\log m}}
+\end{align*}
+
+And we can see that this will be below $1$ if we take $c$ large enough.
+
+
+Remark: Note that $O(\polylog (m)^{\sqrt{log m}})  =  o(m^l)$ for any $l \in \R _+$ which is well known and can easily be seen by setting $m = e^t$ and 
+
+\begin{align*}
+    \log m ^{n\sqrt   { \log m}} = t ^{n \sqrt t} = \exp (n \sqrt t\log t) \ll \exp lt = m^l
+\end{align*}
+ for large enough $t$ (or $m$) and any fixed $n$.
+\end{solution}
+
+\begin{solution}
+Here we are using the same $\phi \in e^{-\Theta(\log^{1/2} m)}$. 
+
+By construction it is an expander hierarchy, so the only thing we need to prove is that $\alpha = \Omega (1 / \polylog m )$. 
+
+At any step we see from part $A$ that $\alpha$ is bounded with $\Omega (1 / \polylog m_i)$ where $m_i$ is the current number of edges in $G_i$.
+ 
+Since in the next step we have fewer edges we have that local $\alpha$ in the next step will be bigger than $\alpha$ from the previous step, so the bound on the whole alpha together holds.
+\end{solution}
+
+
+
 
 \subsection*{Part C (Tree-Flow Sparsifier) (12 points)}
-Given an Expander Hierarchy, we can construct a tree $T$ associated with it as follows. The vertex set of $T$ is given as the union of the vertex sets of all the $G_{i}$, i.e., $V(T)=\bigcup_{i}V(G_{i})$. We root the tree at $r=\{V\}$ and more generally the vertices at depth $i$ of the tree will be identified with the vertices of the graph $G_{k-i}=G/\mathcal{X}_{k-i}$. In particular, the leaves of the tree are all the singletons $\{v\}$, and the tree has depth exactly $k$. For a vertex $X_{i}\in\mathcal{X}_{i}$ at depth $k-i$ of the tree, we add an edge of capacity $\deg_{G/X_{i}}(X_{i})$ between $X_{i}$ and $X_{i+1}\in\mathcal{X}_{i+1}$ where $X_{i+1}$ is the cluster that $X_{i}$ belongs to, i.e., where $X_{i}\subseteq X_{i+1}$.
+Given an Expander Hierarchy, we can construct a tree \(T\) associated with it as follows. The vertex set of \(T\) is given as the union of the vertex sets of all the \(G_i\), i.e., \(V(T) = \bigcup_i V(G_i)\). We root the tree at \(r = \{V\}\), and more generally the vertices at depth \(i\) of the tree will be identified with the vertices of the graph \(G_{k-i} = G / \mathcal{X}_{k-i}\). In particular, the leaves of the tree are all the singletons \(\{v\}\), and the tree has depth exactly \(k\). For a vertex \(X_i \in \mathcal{X}_i\) at depth \(k-i\) of the tree, we add an edge of capacity \(\deg_{G / \mathcal{X}_i}(X_i)\) between \(X_i\) and \(X_{i+1} \in \mathcal{X}_{i+1}\), where \(X_{i+1}\) is the cluster that \(X_i\) belongs to, i.e., where \(X_i \subseteq X_{i+1}\).\textsuperscript{12}
 
-\begin{theorem}
-    Let $\{d_{u,v}\}_{u,v\in V\times V}$ be a set of demands on $V\times V$. Then
-    \[ \frac{1}{\beta}\operatorname{opt}_{G}(\{d_{u,v}\})\le \operatorname{opt}_{T}(\{d_{u,v}\})\le \operatorname{opt}_{G}(\{d_{u,v}\}) \]
-    for some $\beta=e^{O(\log^{1/2}m\log\log m)}$.
-\end{theorem}
+\textbf{Theorem 5.} Let \(\{d_{u,v}\}_{u,v\in V\times V}\) be a set of demands on \(V\times V\). Then
+\[
+\frac{1}{\beta}\opt_G(\{d_{u,v}\})\leq \opt_T(\{d_{u,v}\})\leq \opt_G(\{d_{u,v}\})
+\]
+for some \(\beta = e^{O(\log^{1/2} m \log \log m)}\).
 
-Our goal in this exercise is to prove the above theorem in the case where $k=2$, i.e., the case where Algorithm 1 terminates after 2 iterations because $G/\mathcal{X}_{1}$ is already a $\phi$-expander. So assume that $\mathcal{X}_{1}$ is a $(\phi, \alpha)$ Boundary-Linked expander decomposition of the uncapacitated graph $G$, and that $G/\mathcal{X}_{1}$ is a $\phi$-expander. Let $\{d_{u,v}\}_{u,v\in V\times V}$ be a set of demands such that $\operatorname{opt}_{T}(\{d_{u,v}\})=1$. For simplicity, you may assume that $d_{u,v}=d_{v,u}.$ 
+Our goal in this exercise is to prove the above theorem in the case where \(k = 2\), i.e., the case where Algorithm~1 terminates after 2 iterations because \(G / \mathcal{X}_1\) is already a \(\phi\)-expander. The proof can then be straightforwardly extended to the general case.
 
-\textbf{1.} First, prove that $\operatorname{opt}_{G}(\{d_{u,v}\})\ge1$.
+So assume that \(\mathcal{X}_1\) is a \((\phi,\alpha)\) Boundary-Linked expander decomposition of the uncapacitated graph \(G\), and that \(G / \mathcal{X}_1\) is a \(\phi\)-expander. Our goal is to show that the tree \(T\) then approximates the cost of routing multicommodity flows up to a factor of \(O(\phi^{-1}\polylog n)\).
 
-\solution
+Let \(\{d_{u,v}\}_{u,v\in V\times V}\) be a set of demands such that \(\opt_T(\{d_{u,v}\}) = 1\). For simplicity, you may assume that \(d_{u,v} = d_{v,u}\). Your task is to prove the following two directions.
 
-\textbf{2.} Next, prove that $\operatorname{opt}_{G}(\{d_{u,v}\})\le\beta$ with $\beta=O(\phi^{-1}\alpha^{-1}\operatorname{polylog} m)$. Hint: Use Theorem 2.
+\begin{enumerate}
+    \item First, prove that \(\opt_G(\{d_{u,v}\})\geq 1\).
+    \item Next, prove that \(\opt_G(\{d_{u,v}\})\leq \beta\), with \(\beta = O(\phi^{-1}\alpha^{-1}\polylog m)\). \textit{Hint:} Use Theorem 2.
+\end{enumerate}
 
-\solution
+\begin{solution}[Part 1]
+
+We can actually show this part for tree of any height, there isn't any real difference.
+
+We will show that the optimal congestion in the original graph $G$ is at least as large as the congestion in the tree $T$.
+
+First, observe that in a tree, an $s$-$t$ flow has only a single, unique path it can take. Therefore the flow across any tree edge $e$ is strictly determined by the demands. Removing an edge $e$ from $T$ separates the vertices into two disjoint sets, say $S$ and $V \setminus S$. A commodity's flow will cross $e$ $\iff$ one endpoint is in $S$ and the other is in $V \setminus S$. So the total flow across the tree edge $e$ is exactly the sum of all demands crossing this cut.
+
+Now, look at the optimal multi-commodity flow on $G$ with optimal congestion $c = \opt_G(\{d_{u,v}\})$. We can apply the exact same cut $(S, V \setminus S)$ to the original graph $G$. In $G$ any valid flow must also route the same total cross-cut demand through the edges connecting $S$ and $V \setminus S$ (but can actually route even more because some flow may cross the cut and come back).
+
+If we conceptually combine all the edges crossing this cut in $G$ into a "single big edge," the capacity of this big edge is simply the sum of the capacities of the cut edges, denoted as $u_G(S, V \setminus S)$. Because the optimal flow in $G$ ensures that no individual edge has a congestion greater than $c$, the absolute maximum flow that can physically cross this cut in $G$ is $c \cdot u_G(S, V \setminus S)$.
+
+Since the flow crossing the cut must be sufficient to satisfy the separated demands we know:
+$$ \text{Total Demand across cut} \leq c \cdot u_G(S, V \setminus S) $$
+
+By the construction of the tree, the capacity of the tree edge $e$ is exactly the capacity of this cut in $G$: $u_T(e) = u_G(S, V \setminus S)$. 
+
+So, the congestion of the tree edge $e$ is:
+$$ \congestion_T(e) = \frac{\text{Total Demand across cut}}{u_T(e)} \leq \frac{c \cdot u_G(S, V \setminus S)}{u_G(S, V \setminus S)} = c $$
+
+Since this holds for every edge $e$ in the tree, the maximum congestion in the tree is at most $c$, and thus $\opt_T \leq \opt_G$ as we wanted.
+\end{solution}
+
+\begin{solution}[Part 2]
+    Here we will actually use $k=2$.
+
+    We look at graph $G_1$, which is itself an expander. 
+
+    In $G_1$ we can introduce the clustered demands $D_{X,Y}$ between our big vertices $X, Y$ to just be $D_{X,Y} = \sum _{x \in X, y \in Y} d_{x,y}$. This essentially means how much will we need to route from expander $X$ to expander $Y$.
+
+    We see that since the optimal congestion in the tree is $1$ and the big edges have capacities equal to the sum of edges it means that the conditions for Theorem $2$ and the part $\aleph$ are both satisfied (both in $G_0$ and $G_1$).
+
+    Since $G_1$ is itself an expander we can see that here we can use Theorem $2$ to obtain that the optimal congestion is $O(\phi^{-1} \log n) \leq  O(\phi ^{-1}\log m)$, call that $c_1$.
+
+    Now remember that we have a $G_1$ as a multigraph and that those big edges actually correspond one to one to smaller edges between actual vertices so we get the congestion bound directly to the intercluster edges from $X$.
+
+    Now we just have to correctly route these capacities in the cluster $X$.
+
+    We can interpret this as local demands in $X$ and we have to bound the sum of capacities for each vertex. Each vertex now has atmost an additional $c_1 \cdot \degG _{intercluster} (v)$ demand to drive around.
+
+    So we have that the sum of the total demands going into $v$ now is atmost the sum of the previous demands and these additional ones, and the only previous remaining are the local one inside the cluster $G[X]$:
+
+    \begin{align}
+        \degG_{G[X]} (v) + c_1 \cdot \degG _{intercluster} (v)
+    \end{align}
+
+    But now we remember the great idea of the augmented graph and augment it to obtain new self loops. Denote $r = \lceil \alpha / \phi \rceil$
+
+    And now all those intercluster edges can get included in $\degG_{G[X]^r} (v)$
+
+    We now notice that
+
+    \begin{align}
+        \degG_{G[X]^r} (v) \leq \degG_{G[X]} (v) + 2r  \degG _{intercluster} (v)
+    \end{align}
+
+    Now we want to scale every capacity by some value so that $\degG_{G[X]} (v) + c_1 \cdot \degG _{intercluster} (v)$ will be less than the degree.
+
+    So if we scale every capacity up by $\lambda = max(1, c_1/(2r))$ we will have that the demands now satisfy theorem $2$ and we can bound the max congestion by $O(\phi ^{-1} \log m)$ Since we scaled by $\lambda$ we must also include it in the final congestion, but first we need to actually calculate 
+
+    \begin{align}
+        \lambda = O(c_1/(2r)) = O(O(\phi ^{-1} \log m)/(2\lceil \alpha / \phi \rceil)) = O(\alpha ^{-1} \log m)
+    \end{align}
+
+    And from that we get the total congestion to be
+
+    \begin{align}
+        O(\alpha ^{-1} \log m) \cdot  O(\phi ^{-1} \log m) = O(\alpha ^{-1} \phi ^{-1} \polylog m)
+    \end{align}
+    And we finally proved this result.
+
+
+    
+\end{solution}
+
+
+
 
 \subsection*{Part D (Applications) (3 points)}
-Let $T$ and $\beta$ be the tree and constant from Theorem 5. Assume you are given access to $T$ through an adjacency-list representation. Prove the following:
+The tree \(T\) has many applications; here we discuss the most straightforward ones. So let \(T\) and \(\beta\) be the tree and constant from Theorem~5. Assume you are given access to \(T\) through an adjacency-list representation. Prove the following:
 
-\textbf{1. (1 point)} For any pair of vertices $u, v\in V,$ show how, given $T$, one can in time $O(n)$ compute an estimate $F_{u,v}$ such that
-\[ \operatorname{MaxFlow}_{G}(u,v)\le F_{u,v}\le\beta\cdot \operatorname{MaxFlow}_{G}(u,v). \]
+\begin{enumerate}
+    \item (1 point) For any pair of vertices \(u,v\in V\), show how, given \(T\), one can in time \(O(n)\) compute an estimate \(F_{u,v}\) such that
+    \[
+    \MaxFlow_G(u,v)\leq F_{u,v}\leq \beta \cdot \MaxFlow_G(u,v).
+    \]
+    \item (2 points) Let \(C^{*}\coloneqq \min_{u\neq v}\MaxFlow_G(u,v)\) be the global min-cut value of \(G\). Show how, given \(T\), one can in time \(O(n)\) compute an estimate \(C\) such that
+    \[
+    C^{*}\leq C\leq \beta \cdot C^{*}.
+    \]
+\end{enumerate}
 
-\solution
+\begin{solution} [Part 1]
+In $O(n)$ we can find a path from $u$ to $v$ (they are in the same level and we can just keep moving one layer up for both of them simultaneously until we reach the same vertex). We keep track of the minimum capacity of all the edges we encountered up to now in the path and when we find a path we see that exactly this minimal capacity is the exact flow we can route with congestion exactly $1$. This is actually $O(k)\leq O(n)$.
 
-\textbf{2. (2 points)} Let $C^{*}:=\min_{u\ne v} \operatorname{MaxFlow}_{G}(u,v)$ be the global min-cut value of $G$. Show how, given $T$, one can in time $O(n)$ compute an estimate $C$ such that
-\[ C^{*}\le C\le\beta\cdot C^{*}. \]
+Now we finish directly from Theorem $5$ after noting that Maxflow and congestion are directly inversely proportional.
 
-\solution
+We can explain the last sentence a bit more. From Theorem $5$ we get that any flow in $G$ in routing the exact same demand needs to have atleast the same congestion, so atleast congestion $1$ and if you have congestion more than $1$ then you can't be the max flow since it is impossible to route that.
 
-\clearpage
-\section*{Problem 2: An $\ell_{1}$-Interior Point Method (40 Points)}
+The same argument can be applied to the upper bound by noting that the optimal congestion of routing exactly the same flow will be less than $\beta$ so if we multiply the flow with $\frac 1 \beta $ we get that the congestion will be less than $1$ so we can route it and that will route atmost MaxFlow.
+\end{solution}
 
-In this exercise we will study an unusual interior point method. This interior point method is not what's called a path-following interior point method. Instead, we will introduce a potential function and show that we can always make updates that reduce the potential function and when it is small enough, we have a good solution.
+\begin{solution}
+From the first part of this problem it immediately follows that we just need to find the minimum capacity among the edges of the tree. Since we are in a tree we have $O(n)$ edges and we can just iterate over them and find the minimum in $O(n)$.
+\end{solution}
 
-We will consider the following linear program, with a cost vector $c\in\mathbb{R}^{m}$, linear constraints given by $B\in\mathbb{R}^{n\times m}$ and $d\in\mathbb{R}^{n}$:
+\newpage
+\section*{Problem 2}
+
+% \begin{enumerate}[label=\arabic*.]
+%     \item Is Program (1) a convex optimization program? Is Program (2) a convex optimization program?
+% \end{enumerate}
+
+In this exercise we will study an unusual interior point method. This interior point method is not what's called a path-following interior point method. That means it does not have a ``progress parameter'' like the parameter \(\alpha\) from Chapter 17 of the script. Instead, we will introduce a potential function \(\Phi\) and show that we can always make updates that reduce the potential function -- and when it is small enough, we have a good solution. This type of interior point method is called a \emph{potential reduction method}.
+
+Traditional potential reduction methods make progress by solving a Newton step problem, which is equivalent to minimizing a quadratic function or solving a linear equation. We will see that it is possible to make progress by (approximately) solving an \(\ell_1\)-minimization problem instead.
+
+We will consider the following linear program, with a cost vector \(\pmb{c}\in \mathbb{R}^{m}\), linear constraints given by \(\pmb{B}\in \mathbb{R}^{n\times m}\) and \(\pmb{d}\in \mathbb{R}^{n}\)
 \begin{align}
-    \min_{f\in\mathbb{R}^{m}} \quad & c^{\top}f \label{eq:lp1} \\
-    \text{s.t.} \quad & Bf=d \nonumber \\
-    & f\ge0 \nonumber
+    \min_{f\in \mathbb{R}^{m}} &\quad \pmb{c}^{\top}\pmb{f} \notag\\
+    \mathrm{s.t.}\quad &\pmb{B}\pmb{f} = \pmb{d} \notag\\
+    &\pmb{f}\geq \pmb{0} \tag{1}
 \end{align}
+We assume that \(m > n > 3\), that \(\operatorname{rank}(B) = n\), and that \(1\leq c(e)\leq m^{2}\) for all \(e\in [m]\). Furthermore, we assume that we are given a vector \(\pmb{f}_{0}\) such that for all \(e\in [m]\), we have \(1\leq f_{0}(e)\leq m^{2}\) and \(\pmb{B}\pmb{f}_{0} = \pmb{d}\). Finally, we assume that some optimal solution \(\pmb{f}^{*}\) to the above program satisfies \(\pmb{c}^{\top}\pmb{f}^{*} = C^{*}\), where \(C^{*}\) is a parameter that is explicitly given to us as part of the problem definition and \(C^{*}\in [1,m^{2}]\).
 
-We assume that $m>n>3$, that $\operatorname{rank}(B)=n$, and that $1\le c(e)\le m^{2}$ for all $e\in m$. Furthermore, we assume that we are given a vector $f_{0}$ such that for all $e\in m,$ we have $1\le f_{0}(e)\le m^{2}$ and $Bf_{0}=d$. Finally, we assume that some optimal solution $f^{*}$ to the above program satisfies $c^{\top}f^{*}=C^{*}$, where $C^{*}$ is a parameter that is explicitly given to us as part of the problem definition and $C^{*}\in[1,m^{2}]$.
+Now we are going to consider a barrier program which is a variant of the above program but using barrier functions that make it suitable for optimizing with an interior point method. We define a domain of \(\pmb{f}\) that are strictly feasible w.r.t.\ the non-negativity constraint, given by \(\mathcal{I} = \{f\in \mathbb{R}^{m}: f(e) > 0\}\).
 
-We define a domain of $f$ that are strictly feasible w.r.t.\ the non-negativity constraint, given by $\mathcal{I} = \{f\in\mathbb{R}^{m}:f(e)>0\}$. Then, we define a barrier $B:\mathcal{I}\rightarrow\mathbb{R}$ by $B(f)=\sum_{e\in m}-\log(f(e))$. We further define our overall potential $\Phi(f)=10m\log(c^{\top}f-C^{*})+B(f)$.
-
-We can now introduce our barrier program:
+Then, we define a barrier \(B:\mathcal{I}\to \mathbb{R}\) by \(B(f) = \sum_{e\in [m]} -\log(f(e))\). We further define our overall potential \(\Phi(f) = 10m\log(c^{\top}f - C^{*}) + B(f)\). We can now introduce our barrier program:
 \begin{align}
-    \min_{f\in\mathcal{I}} \quad & \Phi(f) \label{eq:lp2} \\
-    \text{s.t.} \quad & Bf=d \nonumber
+    \min_{f\in \mathcal{I}} &\quad \Phi(f) \notag\\
+    \mathrm{s.t.}\quad & Bf = d \tag{2}
 \end{align}
 
 \subsection*{Part A: The Potential Function: Initialization and End-Goal (10 Points)}
+We would now like to begin understanding the Programs (1) and (2) better. We will investigate the value of \(\Phi(f_{0})\), i.e.\ the potential at feasible point \(f_{0}\). Second, we will investigate how a feasible solution \(f\) for Program (2) with a small potential value \(\Phi(f)\) give us an approximately optimal solution to Program (1).
 
-\textbf{1.} Is Program (1) a convex optimization program? Is Program (2) a convex optimization program?
+\begin{enumerate}[label=\arabic*.]
+    \item Is Program (1) a convex optimization program? Is Program (2) a convex optimization program?
+    \item (Initialization) Prove that \(\Phi(f_0)\leq 100m\log m\).
+    \item (End-goal) Prove that if \(Bf = d\), and \(f\in \mathcal{I}\), and \(\Phi(f)\leq -100m\log m\) then \(c^{\top}f\leq C^{*} + 1/m\). \textit{Hint:} Watch out for a possible negative contribution from \(B(f)\). A case analysis based on \(\|f\|_{\infty} > \tau\) or \(\|f\|_{\infty}\leq \tau\) for some threshold \(\tau\) might be useful.
+\end{enumerate}
 
-\solution
+\begin{solution}
+% 1.
+\end{solution}
 
-\textbf{2.} (Initialization) Prove that $\Phi(f_{0})\le 100m\log m$.
+\begin{solution}
+% 2.
+\end{solution}
 
-\solution
-
-\textbf{3.} (End-goal) Prove that if $Bf=d$ and $f\in\mathcal{I}$, and $\Phi(f)\le-100m\log m$ then $c^{\top}f\le C^{*}+1/m.$ Hint: Watch out for a possible negative contribution from $B(f)$. A case analysis based on $\|f\|_{\infty}>\tau$ vs $\|f\|_{\infty}\le\tau$ for some threshold might be useful.
-
-\solution
+\begin{solution}
+% 3.
+\end{solution}
 
 \subsection*{Part B: IPM Progress Using Updates (10 Points)}
+In Part A of this homework problem, we saw how to find a starting point for minimizing \(\Phi(f)\) in Program (2). Now, we would like to understand how to improve the solution. To do this, we will think about Taylor series approximations of \(\Phi\).
 
-\textbf{1.} Given $f\in\mathcal{I}$, define $\ell\in\mathbb{R}^{m}$ by $\ell(e)=1/f(e)$ for all $e\in m.$ We define a corresponding diagonal matrix $L_{f}\in\mathbb{R}^{m\times m}$ by $L_{f}(e,e)=\ell(e)$ for all $e\in E.$ Prove that if $\|L_{f}\delta\|_{\infty}\le1/2$ then $f+\delta\in\mathcal{I}$ and
-\[ \Phi(f+\delta)\le\Phi(f)+\nabla_{f}\Phi(f)^{\top}\delta+4\|L_{f}\delta\|_{1}^{2}. \]
+\begin{enumerate}[label=\arabic*.]
+    \item Given \(f\in \mathcal{I}\), define \(l\in \mathbb{R}^{m}\) by \(l(e) = 1 / f(e)\) for all \(e\in [m]\). We define a corresponding diagonal matrix \(L_{f}\in \mathbb{R}^{m\times m}\) by \(L_{f}(e,e) = l(e)\) for all \(e\in [m]\).
 
-\solution
+    Prove that if \(\|L_{f}\delta\|_{\infty}\leq 1/2\) then \(f + \delta \in \mathcal{I}\) and
+    \[
+    \Phi(f + \delta)\leq \Phi(f) + \nabla_{f}\Phi(f)^{\top}\delta + 4\|L_{f}\delta\|_{1}^{2}.
+    \]
+    \item Prove that if for some \(\kappa > 1\) we have \(\|L_{f}\delta\|_{1}\leq \kappa\) and \(\nabla_{f}\Phi(f)^{\top}\delta = -1\) then
+    \[
+    \Phi\left(f + \frac{1}{8\kappa^{2}}\delta\right)\leq \Phi(f) - \frac{1}{16\kappa^{2}}.
+    \]
+\end{enumerate}
 
-\textbf{2.} Prove that if for some $\kappa>1$ we have $\|L_{f}\delta\|_{1}\le\kappa$ and $\nabla_{f}\Phi(f)^{\top}\delta=-1$ then
-\[ \Phi\left(f+\frac{1}{8\kappa^{2}}\delta\right)\le\Phi(f)-\frac{1}{16\kappa^{2}}. \]
+\begin{solution}
+% 1.
+\end{solution}
 
-\solution
+\begin{solution}
+% 2.
+\end{solution}
 
 \subsection*{Part C: The Update (10 Points)}
+In Part B, we saw a set of sufficient conditions for an update \(\delta\) to improve the potential function value. Of course, if we use this to optimize \(\Phi(f)\) by moving from \(f\) to \(f + \delta\), then if we require that \(Bf = d\) and \(B(f + \delta) = d\), then we must have \(B\delta = 0\). In this part, we will show that in fact a good update \(\delta\) exists for lowering the value of \(\Phi\), and we can phrase the task of finding \(\delta\) as an optimization problem. Finally, we will put everything together and argue that if we can find the update steps, we can get a good approximate solution to our linear program.
 
-\textbf{1.} Consider the following optimization program:
-\begin{align}
-    \min_{\delta\in\mathbb{R}^{m}} \quad & \|L_{f}\delta\|_{1} \label{eq:lp3} \\
-    \text{s.t.} \quad & B\delta=0 \nonumber \\
-    & \nabla_{f}\Phi(f)^{\top}\delta=-1 \nonumber
-\end{align}
-Is this a convex optimization program?
+\begin{enumerate}[label=\arabic*.]
+    \item Consider the following optimization program:
+    \begin{align}
+        \min_{\delta \in \mathbb{R}^{m}} &\quad \|L_{f}\delta\|_{1} \notag\\
+        \mathrm{s.t.}\quad & B\delta = 0 \notag\\
+        & \nabla_{f}\Phi(f)^{\top}\delta = -1 \tag{3}
+    \end{align}
+    Is this a convex optimization program?
+    \item Prove that the value \(\gamma^{*}\) of Program (3) is bounded by \(\gamma^{*}\leq 10\).
+    
+    \textit{Hint:} Consider vectors of the form \(\bar{\delta} = \alpha(f^{*} - f)\) for some scalar \(\alpha\), where \(f^{*}\) is an optimal solution to Program (1).
+    \item Suppose you have access to the following subroutine: \(\texttt{COMPUTESTEP}(L_f,\Phi(f))\) returns a feasible solution to Program (3) with \(\|L_{f}\delta\|_{1}\leq 20\) in time \(T(m)\). Assume \(T(m) > m\) and that \(T(\cdot)\) is monotonically increasing. Describe an algorithm for producing a vector \(f\) which is a feasible solution for Program (1) and has \(c^{\top}f\leq C^{*} + 1/m\). The algorithm should run in time \(\widetilde{O}(mT(m))\) and may use \(\texttt{COMPUTESTEP}\) as well as the given starting point \(f_0\).
+\end{enumerate}
 
-\solution
+\begin{solution}
+% 1.
+\end{solution}
 
-\textbf{2.} Prove that the value $\gamma^{*}$ of Program (3) is bounded by $\gamma^{*}\le10$. Hint: Consider vectors of the form $\overline{\delta}=\alpha(f^{*}-f)$ for some scalar $\alpha$, where $f^{*}$ is an optimal solution to Program (1).
+\begin{solution}
+% 2.
+\end{solution}
 
-\solution
-
-\textbf{3.} Suppose you have access to the following subroutine: $\textsc{ComputeStep}(L_f, \nabla\Phi(f))$ returns a feasible solution to Program (3) with $\|L_{f}\delta\|_{1}\le20$ in time $T(m).$ Assume $T(m)>m$ and that $T(\cdot)$ is monotonically increasing. Describe an algorithm for producing a vector $f$ which is a feasible solution for Program (1) and has $c^{\top}f\le C^*+1/m$. The algorithm should run in time $\tilde{O}(mT(m))$ and may use \textsc{ComputeStep} as well as the given starting point $f_{0}$.
-
-\solution
+\begin{solution}
+% 3.
+\end{solution}
 
 \subsection*{Part D: Dynamics (10 Points)}
-
-We will consider a sequence of linear programs $LP_{0},LP_{1},\dots,LP_{k}$. Initially, we are given only $LP_{0}$:
+We will consider a sequence of linear programs \(\mathrm{LP}_0,\mathrm{LP}_1,\ldots ,\mathrm{LP}_k\). Initially, we are given only \(\mathrm{LP}_0\), which is specified by a cost vector \(\pmb{c}\in \mathbb{R}^{m}\) and linear constraints given by \(\pmb{B}\in \mathbb{R}^{n\times m}\) and \(\pmb{d}\in \mathbb{R}^{n}\), and takes the form
 \begin{align}
-    \min_{f\in\mathbb{R}^{m}} \quad & c^{\top}f \label{eq:lp4} \\
-    \text{s.t.} \quad & Bf=d \nonumber \\
-    & f\ge0 \nonumber
+    \min_{f\in \mathbb{R}^{m}} &\quad c^{\top}f \notag\\
+    \mathrm{s.t.}\quad & B f = d \notag\\
+    & f\geq 0 \tag{4}
 \end{align}
-We assume $m>n>3$, $\operatorname{rank}(B)=n$, and $1\le c(e)\le m^{2}$ for all $e\in[m]$. Furthermore, there exists $f_{0}$ such that $1\le f_{0}(e)\le m^{2}$ and $Bf_{0}=d$. 
+We assume that \(m > n > 3\), that \(\mathrm{rank}(B) = n\), and that \(1\leq c(e)\leq m^{2}\) for all \(e\in [m]\). Furthermore, we assume there exists vector \(\pmb{f}_{0}\) such that for all \(e\in [m]\), we have \(1\leq f_{0}(e)\leq m^{2}\) and \(B f_{0} = d\).
 
-We assume $k<m$. $LP_{1},\dots,LP_{k}$ will be revealed across rounds $i=1,\dots,k$. In round $i$, we receive a vector $a_{i}\in\mathbb{R}^{n}$ and a scalar $1\le g_{i}\le m^{2}$. We define matrix $A_{i}=(a_{1}\dots a_{i})\in\mathbb{R}^{n\times i}$ and vector $g_{i}=(g_{1}\dots g_{i})\in\mathbb{R}^{i}$. We define $LP_{i}$ by:
+We also assume \(k < m\). The linear programs \(\mathrm{LP}_1,\ldots ,\mathrm{LP}_k\) will be revealed to us across rounds \(i = 1,\ldots ,k\) in the following way: In round \(i\), we receive a vector \(\pmb{a}_i\in \mathbb{R}^{n}\) and a scalar \(1\leq g_i\leq m^{2}\). We then define a matrix \(\pmb{A}_i = (\pmb{a}_1\ \ldots\ \pmb{a}_i)\in \mathbb{R}^{n\times i}\) and a vector \(\pmb{g}_i = (g_1,\ldots ,g_i)\in \mathbb{R}^{i}\), and finally define \(\mathrm{LP}_i\) by
 \begin{align}
-    \min_{f\in\mathbb{R}^{m},h\in\mathbb{R}^{i}} \quad & c^{\top}f+g_{i}^{\top}h \label{eq:lp5} \\
-    \text{s.t.} \quad & Bf+A_{i}h=d \nonumber \\
-    & f\ge0, \quad h\ge0 \nonumber
+    \min_{f\in \mathbb{R}^{m},\ h\in \mathbb{R}^{i}} &\quad c^{\top}f + g_i^{\top}h \notag\\
+    \mathrm{s.t.}\quad & B f + A_i h = d \notag\\
+    & f\geq 0 \notag\\
+    & h\geq 0 \tag{5}
 \end{align}
 
-You may assume access to $\textsc{ComputeStep}(M, L, q)$. Given $M \in \mathbb{R}^{n^{\prime}\times m^{\prime}}$ with $n^{\prime}<m^{\prime}$, matrix $L\in\mathbb{R}^{m^{\prime}\times m^{\prime}}$, and vector $q\in\mathbb{R}^{m}$, it returns vector $\delta$ which is a 2-approximately optimal solution to:
+You may assume access to a subroutine \(\texttt{COMPUTESTEP}(M,L,q)\), defined as follows. Given \(M\in \mathbb{R}^{n'\times m'}\) with \(n'< m'\), a matrix \(\pmb{L}\in \mathbb{R}^{m'\times m'}\), and a vector \(\pmb{q}\in \mathbb{R}^{m'}\), the subroutine returns vector \(\delta\) which is a 2-approximately optimal solution to the following program
 \begin{align}
-    \min_{\delta\in\mathbb{R}^{m^{\prime}}} \quad & \|L\delta\|_{1} \label{eq:lp6} \\
-    \text{s.t.} \quad & M\delta=0 \nonumber \\
-    & q^{\top}\delta=-1 \nonumber
+    \min_{\delta \in \mathbb{R}^{m'}} &\quad \|L\delta\|_{1} \notag\\
+    \mathrm{s.t.}\quad & M\delta = 0 \notag\\
+    & q^{\top}\delta = -1 \tag{6}
 \end{align}
-The subroutine runs in time $T(m^{\prime},n^{\prime})$. Assume $T(m^{\prime},n^{\prime})>n^{\prime}m^{\prime}$.
+The subroutine runs in time \(T(m',n')\). Assume \(T(m',n') > n'm'\) and that \(T(\cdot,n')\) is monotonically increasing.
 
-We are given $C^{*}\in[1,m^{2}]$ and $f_{0}$. We assume there is some round $i^{*}\ge1$ where $LP_{i^{*}}$ has an optimal feasible solution $(f^{*},h^{*})$ satisfying $c^{\top}f^{*}+g_{i}^{\top}h^{*} = C^{*}$ and that in all rounds $i<i^{*}$ the program $LP_{i}$ has value greater than $C^{*}+1$.
+We are given a parameter \(C^{*}\in [1,m^{2}]\) and \(f_{0}\) as described above. We assume that there is some round \(i^{*}\geq 1\) where program \(\mathrm{LP}_{i^{*}}\) has an optimal feasible solution \((f^{*},h^{*})\) satisfying \(c^{\top}f^{*} + g_{i}^{\top}h^{*} = C^{*}\), and that in all rounds \(i < i^{*}\), the program \(\mathrm{LP}_i\) has value greater than \(C^{*} + 1\).
 
-Your task is to design an algorithm: An adversary gives you $C^{*}$ and $f_{0}$, and $LP_{0}$. Then in rounds $i=1,\dots,k$ the adversary gives you $a_{i}$ and $g_{i}$. In every round, your algorithm must respond YES or NO, before moving to the next round. NO is allowed in any round $i<i^{*}$, and YES is allowed in any round $i$ where there exists $(f, h)$ satisfying $c^{\top}f+g_{i}^{\top}h\le C^{*}+m^{-1}$ and $f\ge-m^{-3}\mathbf{1}$ and $h\ge-m^{-3}\mathbf{1}$, and $Bf+A_{i}h=d$. The time your algorithm spends across all rounds should be at most $\tilde{O}(mT(2m,n))$.
+Your task is to design an algorithm that solves the following problem: An adversary initially gives you the parameter \(C^{*}\) and vector \(f_0\) as described earlier, and reports to you the linear program \(\mathrm{LP}_0\). Then in rounds \(i = 1,\ldots ,k\), the adversary gives you \(\pmb{a}_i\) and \(g_i\) as described above. In every round, after receiving these values, your algorithm must respond YES or NO, before moving to the next round. The response NO is allowed in any round \(i < i^{*}\) (note: you are not told the index \(i^{*}\)), and the response YES is allowed in any round \(i\) where there exists \((f,h)\) satisfying \(c^{\top}f + g_i^{\top}h \leq C^{*} + m^{-1}\) and \(f\geq -m^{-3}\mathbf{1}\) and \(h\geq -m^{-3}\mathbf{1}\), and \(Bf + A_i h = d\).
 
-\solution
+The time your algorithm spends across all rounds should be at most \(\widetilde{O}(mT(2m,n))\).
+
+\medskip
+\noindent\textit{Warning:} If we did not have the requirement that you must respond YES or NO in round \(i\) before receiving the data for round \(i+1\), then you could solve this problem much more easily using a binary search approach. That will not work here, since you have to give a correct answer for round \(i\) before moving on.
+
+\begin{solution}
+% Write your algorithm and analysis here
+\end{solution}
 
 \end{document}
